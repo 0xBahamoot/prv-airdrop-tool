@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 	lvdbErrors "github.com/syndtr/goleveldb/leveldb/errors"
@@ -13,7 +15,7 @@ var localdb *leveldb.DB
 func initDB() error {
 	handles := 256
 	cache := 8
-	dbPath := "airdrop"
+	dbPath := "airdropdb"
 	lvdb, err := leveldb.OpenFile(dbPath, &opt.Options{
 		OpenFilesCacheCapacity: handles,
 		BlockCacheCapacity:     cache / 2 * opt.MiB,
@@ -30,6 +32,31 @@ func initDB() error {
 	return nil
 }
 
-func UpdateUserKey() {
+func UpdateUserAirdropInfo(user *UserAccount) error {
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	err = localdb.Put([]byte(user.PaymentAddress), userBytes, nil)
+	return err
+}
 
+func LoadUserAirdropInfo() ([]*UserAccount, error) {
+	var result []*UserAccount
+	iter := localdb.NewIterator(nil, nil)
+	for iter.Next() {
+		// Remember that the contents of the returned slice should not be modified, and
+		// only valid until the next call to Next.
+		// key := iter.Key()
+		userAcc := new(UserAccount)
+		value := iter.Value()
+		err := json.Unmarshal(value, userAcc)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, userAcc)
+	}
+	iter.Release()
+	err := iter.Error()
+	return result, err
 }

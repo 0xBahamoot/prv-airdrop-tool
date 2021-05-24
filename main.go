@@ -26,9 +26,9 @@ type UserAccount struct {
 	PaymentAddress     string
 	TotalTokens        map[string]uint64
 	OngoingTxs         []string
-	CompletedTxs       []string
 	Txs                map[string]*AirdropTxDetail
 	LastAirdropRequest int64
+	AirdropSuccess     bool
 }
 
 type AirdropAccount struct {
@@ -64,6 +64,9 @@ var adc AirdropController
 func main() {
 	adc.UserAccounts = make(map[string]*UserAccount)
 	readConfig()
+	if err := initDB(); err != nil {
+		panic(err)
+	}
 	var err error
 	incClient, err = incclient.NewDevNetClient()
 	if err != nil {
@@ -85,7 +88,17 @@ func main() {
 		}
 	}
 	adc.lastUsedADA = 0
-
+	airdroppedUser, err := LoadUserAirdropInfo()
+	if err != nil {
+		panic(err)
+	}
+	for _, v := range airdroppedUser {
+		adc.UserAccounts[v.PaymentAddress] = v
+		if len(v.OngoingTxs) != 0 {
+			ctx, _ := context.WithTimeout(context.Background(), 35*time.Minute)
+			go watchUserAirdropStatus(v, ctx)
+		}
+	}
 	r := gin.Default()
 
 	r.GET("/requestdrop", APIReqDrop)
@@ -218,19 +231,28 @@ func AirdropUser(user *UserAccount) {
 	}
 	log.Println("done sending txs, wait for result...")
 	user.OngoingTxs = txsToWatch
+
 	ctx, _ := context.WithTimeout(context.Background(), 45*time.Minute)
+	watchUserAirdropStatus(user, ctx)
+}
+
+func watchUserAirdropStatus(user *UserAccount, ctx context.Context) {
+	defer func() {
+		err := UpdateUserAirdropInfo(user)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	for {
 		select {
 		case <-ctx.Done():
 			for _, txHash := range user.OngoingTxs {
 				user.Txs[txHash].Status = 3
 			}
+			user.AirdropSuccess = false
+			return
 		default:
 			txToWatchLeft := []string{}
-			if len(user.OngoingTxs) == 0 {
-				log.Println("Done airdrop for user", user.PaymentAddress)
-				return
-			}
 			for _, txhash := range user.OngoingTxs {
 				txDetail, err := incClient.GetTxDetail(txhash)
 				if err != nil {
@@ -241,14 +263,22 @@ func AirdropUser(user *UserAccount) {
 					txToWatchLeft = append(txToWatchLeft, txhash)
 				} else {
 					user.Txs[txhash].Status = 2
-					user.CompletedTxs = append(user.CompletedTxs, txhash)
+					// user.CompletedTxs = append(user.CompletedTxs, txhash)
 				}
 				fmt.Println("txDetail.IsInBlock", txDetail.IsInBlock)
 			}
 			user.OngoingTxs = txToWatchLeft
+			err := UpdateUserAirdropInfo(user)
+			if err != nil {
+				log.Println(err)
+			}
+			if len(user.OngoingTxs) == 0 {
+				user.AirdropSuccess = true
+				log.Println("Done airdrop for user", user.PaymentAddress)
+				return
+			}
 			time.Sleep(15 * time.Second)
 		}
-
 	}
 }
 
@@ -311,10 +341,10 @@ retry:
 	adc.lastUsedADA = (adc.lastUsedADA + 1) % len(adc.AirdropAccounts)
 	result = adc.AirdropAccounts[adc.lastUsedADA]
 	if result.TotalUTXO == 0 {
-		getADCUTXOs(result)
+		getAirdropAccountUTXOs(result)
 	}
 	if len(result.UTXOInUse) == len(result.UTXOList) {
-		getADCUTXOs(result)
+		getAirdropAccountUTXOs(result)
 	}
 	totalADAValue := uint64(0)
 	for _, v := range result.UTXOList {
@@ -327,7 +357,7 @@ retry:
 	return result
 }
 
-func getADCUTXOs(adc *AirdropAccount) {
+func getAirdropAccountUTXOs(adc *AirdropAccount) {
 	uxto, indices, err := incClient.GetUnspentOutputCoins(adc.Privatekey, common.PRVCoinID.String(), 0)
 	if err != nil {
 		panic(err)
