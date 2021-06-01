@@ -111,23 +111,24 @@ func APIReqDrop(c *gin.Context) {
 	paymentkey := c.Query("paymentkey")
 	if paymentkey == "" {
 		c.JSON(http.StatusOK, gin.H{
-			"result": "your request have been heard",
+			"result": 0,
 		})
 		return
 	}
 	adc.userlock.RLock()
 	if user, ok := adc.UserAccounts[paymentkey]; ok {
 		adc.userlock.RUnlock()
-		t := time.Unix(user.LastAirdropRequest, 0)
-		if time.Since(t) < 30*time.Minute {
-			c.JSON(http.StatusOK, gin.H{
-				"result": "please try again later",
-			})
-			return
-		}
+		_ = user
+		// t := time.Unix(user.LastAirdropRequest, 0)
+		// if time.Since(t) < 30*time.Minute {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"result": 0,
+		// 	})
+		// 	return
+		// }
 		// go AirdropUser(user)
 		c.JSON(http.StatusOK, gin.H{
-			"result": "your request have been heard",
+			"result": 0,
 		})
 		return
 	}
@@ -140,7 +141,7 @@ func APIReqDrop(c *gin.Context) {
 	adc.userlock.Unlock()
 	go AirdropUser(newUserAccount)
 	c.JSON(http.StatusOK, gin.H{
-		"result": "your request have been heard",
+		"result": 1,
 	})
 }
 
@@ -220,16 +221,21 @@ func AirdropUser(user *UserAccount) {
 	}
 	airdropAccount.lock.Unlock()
 	user.LastAirdropRequest = time.Now().Unix()
+	sc := 0
+	fl := 0
 	for idx, txBytes := range txsToSend {
 		err = incClient.SendRawTx(txBytes)
 		if err != nil {
 			strings.Contains(err.Error(), "Reject")
+			log.Println("send tx error", err)
 			user.Txs[txsToWatch[idx]].Status = 3
+			fl++
 		} else {
 			user.Txs[txsToWatch[idx]].Status = 1
+			sc++
 		}
 	}
-	log.Println("done sending txs, wait for result...")
+	log.Printf("%v txs success, %v txs failed, wait for result...\n", sc, fl)
 	user.OngoingTxs = txsToWatch
 
 	ctx, _ := context.WithTimeout(context.Background(), 45*time.Minute)
@@ -284,7 +290,7 @@ func watchUserAirdropStatus(user *UserAccount, ctx context.Context) {
 
 func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint64) (*AirdropTxDetail, []byte, string, error) {
 	log.Println("Creating tx with param", ada.Privatekey, paymentAddress, UTXOamount)
-	totalPRVNeeded := UTXOamount * AirdropCoinValue
+	totalPRVNeeded := (UTXOamount * AirdropCoinValue) + incclient.DefaultPRVFee
 	valueList := []uint64{}
 	paymentList := []string{}
 	coinsToUse := []string{}
@@ -335,6 +341,7 @@ func chooseAirdropAccount(totalValueNeeded uint64) *AirdropAccount {
 retry:
 	if i+1 == len(adc.AirdropAccounts) {
 		time.Sleep(20 * time.Second)
+		log.Println("can't choose airdrop account")
 		i = 0
 	}
 	i++
@@ -364,10 +371,12 @@ func getAirdropAccountUTXOs(adc *AirdropAccount) {
 	}
 	var utxos []Coin
 	for idx, v := range uxto {
-		utxos = append(utxos, Coin{
-			Coin:  v,
-			Index: indices[idx].Uint64(),
-		})
+		if v.GetVersion() == 2 {
+			utxos = append(utxos, Coin{
+				Coin:  v,
+				Index: indices[idx].Uint64(),
+			})
+		}
 	}
 	adc.lock.Lock()
 	adc.TotalUTXO = len(utxos)
