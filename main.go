@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -68,7 +69,7 @@ func main() {
 		panic(err)
 	}
 	var err error
-	incClient, err = incclient.NewDevNetClient()
+	incClient, err = incclient.NewIncClient(config.Fullnode, "", 2)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,7 +104,7 @@ func main() {
 
 	r.GET("/requestdrop", APIReqDrop)
 
-	r.Run("0.0.0.0:5000")
+	r.Run("0.0.0.0:" + strconv.Itoa(config.Port))
 	select {}
 }
 
@@ -188,11 +189,14 @@ func AirdropUser(user *UserAccount) {
 	txsToWatch := []string{}
 	totalPRVAmountNeeded := uint64(0)
 	totalPRVCoinsNeeded := 0
-	for _, tokenAmount := range user.TotalTokens {
-		txNeedToSend := int(math.Ceil(float64(tokenAmount) / float64(PRVCoinPerTokenCoins)))
-		totalPRVAmountNeeded += (incclient.DefaultPRVFee + (AirdropCoinValue * PRVCoinPerTokenCoins)) * uint64(txNeedToSend)
-		totalPRVCoinsNeeded += txNeedToSend
-	}
+	// for _, tokenAmount := range user.TotalTokens {
+	// 	txNeedToSend := int(math.Ceil(float64(tokenAmount) / float64(PRVCoinPerTokenCoins)))
+	// 	totalPRVAmountNeeded += (incclient.DefaultPRVFee + (AirdropCoinValue * PRVCoinPerTokenCoins)) * uint64(txNeedToSend)
+	// 	totalPRVCoinsNeeded += txNeedToSend
+	// }
+
+	totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
+	totalPRVCoinsNeeded = len(user.TotalTokens) * 2
 
 	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded)
 	airdropAccount.lock.Lock()

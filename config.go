@@ -7,7 +7,9 @@ import (
 )
 
 type Config struct {
+	Port        int
 	Coinservice string
+	Fullnode    string
 	AirdropKeys []string
 }
 
