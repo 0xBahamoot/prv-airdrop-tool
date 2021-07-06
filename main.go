@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LampardNguyen234/go-incognito/coin"
-	"github.com/LampardNguyen234/go-incognito/common"
-	"github.com/LampardNguyen234/go-incognito/incclient"
-	"github.com/LampardNguyen234/go-incognito/wallet"
 	"github.com/gin-gonic/gin"
 	"github.com/incognitochain/coin-service/shared"
+	"github.com/incognitochain/go-incognito-sdk-v2/coin"
+	"github.com/incognitochain/go-incognito-sdk-v2/common"
+	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
+	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
 	"github.com/pkg/errors"
 )
 
