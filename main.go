@@ -112,7 +112,7 @@ func APIReqDrop(c *gin.Context) {
 	paymentkey := c.Query("paymentkey")
 	if paymentkey == "" {
 		c.JSON(http.StatusOK, gin.H{
-			"result": 0,
+			"Result": 0,
 		})
 		return
 	}
@@ -120,16 +120,23 @@ func APIReqDrop(c *gin.Context) {
 	if user, ok := adc.UserAccounts[paymentkey]; ok {
 		adc.userlock.RUnlock()
 		_ = user
-		// t := time.Unix(user.LastAirdropRequest, 0)
+		t := time.Unix(user.LastAirdropRequest, 0)
 		// if time.Since(t) < 30*time.Minute {
 		// 	c.JSON(http.StatusOK, gin.H{
-		// 		"result": 0,
+		// 		"Result": 0,
 		// 	})
 		// 	return
 		// }
 		// go AirdropUser(user)
+		r := 0
+		if time.Since(t) <= 30*time.Minute {
+			r = 1
+		}
+		if user.AirdropSuccess {
+			r = 2
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"result": 0,
+			"Result": r,
 		})
 		return
 	}
@@ -142,7 +149,7 @@ func APIReqDrop(c *gin.Context) {
 	adc.userlock.Unlock()
 	go AirdropUser(newUserAccount)
 	c.JSON(http.StatusOK, gin.H{
-		"result": 1,
+		"Result": 1,
 	})
 }
 
