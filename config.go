@@ -10,7 +10,10 @@ type Config struct {
 	Port        int
 	Coinservice string
 	Fullnode    string
-	AirdropKeys []string
+	AirdropKeys []AirdropKey
+}
+type AirdropKey struct {
+	PrivateKey string
 }
 
 var config Config
@@ -30,7 +33,7 @@ func readConfig() {
 	adc.airlock.Lock()
 	for _, key := range config.AirdropKeys {
 		acc := &AirdropAccount{
-			Privatekey: key,
+			Privatekey: key.PrivateKey,
 			UTXOInUse:  make(map[string]struct{}),
 		}
 		adc.AirdropAccounts = append(adc.AirdropAccounts, acc)
