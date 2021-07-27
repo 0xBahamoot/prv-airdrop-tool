@@ -25,6 +25,7 @@ var incClient *incclient.IncClient
 
 type UserAccount struct {
 	PaymentAddress     string
+	ShardID            int
 	TotalTokens        map[string]uint64
 	OngoingTxs         []string
 	Txs                map[string]*AirdropTxDetail
@@ -36,6 +37,7 @@ type AirdropAccount struct {
 	lock       sync.Mutex
 	Privatekey string
 	TotalUTXO  int
+	ShardID    int
 	UTXOList   []Coin
 	UTXOInUse  map[string]struct{}
 }
@@ -141,8 +143,18 @@ func APIReqDrop(c *gin.Context) {
 		return
 	}
 	adc.userlock.RUnlock()
+
+	wl, err := wallet.Base58CheckDeserialize(paymentkey)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"Result": 0,
+			"Error":  err,
+		})
+	}
+
 	newUserAccount := new(UserAccount)
 	newUserAccount.PaymentAddress = paymentkey
+	newUserAccount.ShardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
 	newUserAccount.Txs = make(map[string]*AirdropTxDetail)
 	adc.userlock.Lock()
 	adc.UserAccounts[paymentkey] = newUserAccount
@@ -205,7 +217,7 @@ func AirdropUser(user *UserAccount) {
 	totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
 	totalPRVCoinsNeeded = len(user.TotalTokens) * 2
 
-	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded)
+	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)
 	airdropAccount.lock.Lock()
 	totalTxNeeded := int(math.Ceil(float64(totalPRVCoinsNeeded) / float64(MaxTxOutput)))
 
@@ -345,7 +357,7 @@ func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint
 	return &txDetail, encodedTx, txHash, nil
 }
 
-func chooseAirdropAccount(totalValueNeeded uint64) *AirdropAccount {
+func chooseAirdropAccount(totalValueNeeded uint64, shardID int) *AirdropAccount {
 	var result *AirdropAccount
 	var i int
 	adc.airlock.Lock()
@@ -358,6 +370,9 @@ retry:
 	i++
 	adc.lastUsedADA = (adc.lastUsedADA + 1) % len(adc.AirdropAccounts)
 	result = adc.AirdropAccounts[adc.lastUsedADA]
+	if result.ShardID != shardID {
+		goto retry
+	}
 	if result.TotalUTXO == 0 {
 		getAirdropAccountUTXOs(result)
 	}
