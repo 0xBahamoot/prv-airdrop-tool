@@ -220,7 +220,7 @@ func AirdropUser(user *UserAccount) {
 	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)
 	airdropAccount.lock.Lock()
 	totalTxNeeded := int(math.Ceil(float64(totalPRVCoinsNeeded) / float64(MaxTxOutput)))
-
+	txList := []string{}
 	log.Printf("sending txs for user %v: %v %v %v", user.PaymentAddress, totalPRVAmountNeeded, totalPRVCoinsNeeded, totalTxNeeded)
 	txsToSend := [][]byte{}
 	for i := 0; i < totalTxNeeded; i++ {
@@ -232,6 +232,7 @@ func AirdropUser(user *UserAccount) {
 			txsToWatch = append(txsToWatch, txHash)
 			txsToSend = append(txsToSend, txBytes)
 			user.Txs[txHash] = txDetail
+			txList = append(txList, txHash)
 		} else {
 			txDetail, txBytes, txHash, err := CreateAirDropTx(airdropAccount, user.PaymentAddress, MaxTxOutput)
 			if err != nil {
@@ -240,6 +241,7 @@ func AirdropUser(user *UserAccount) {
 			txsToWatch = append(txsToWatch, txHash)
 			txsToSend = append(txsToSend, txBytes)
 			user.Txs[txHash] = txDetail
+			txList = append(txList, txHash)
 		}
 	}
 	airdropAccount.lock.Unlock()
@@ -257,7 +259,9 @@ func AirdropUser(user *UserAccount) {
 			user.Txs[txsToWatch[idx]].Status = 1
 			sc++
 		}
+		log.Printf("user %v sent success tx %v", user.PaymentAddress, txList[idx])
 	}
+
 	log.Printf("%v txs success, %v txs failed, wait for result...\n", sc, fl)
 	user.OngoingTxs = txsToWatch
 
