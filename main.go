@@ -339,6 +339,7 @@ func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint
 		chosenValue += v.Coin.GetValue()
 		coinsDataToUse = append(coinsDataToUse, v.Coin)
 		coinsToUseIdx = append(coinsToUseIdx, v.Index)
+		coinsToUse = append(coinsToUse, cpubkey.String())
 		if chosenValue >= totalPRVNeeded {
 			break
 		}
