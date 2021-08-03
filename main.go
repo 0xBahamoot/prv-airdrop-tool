@@ -339,6 +339,7 @@ func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint
 		chosenValue += v.Coin.GetValue()
 		coinsDataToUse = append(coinsDataToUse, v.Coin)
 		coinsToUseIdx = append(coinsToUseIdx, v.Index)
+		coinsToUse = append(coinsToUse, cpubkey.String())
 		if chosenValue >= totalPRVNeeded {
 			break
 		}
@@ -411,6 +412,12 @@ func getAirdropAccountUTXOs(adc *AirdropAccount) {
 	adc.lock.Lock()
 	adc.TotalUTXO = len(utxos)
 	adc.UTXOList = utxos
-	adc.UTXOInUse = make(map[string]struct{})
+	UTXOInUsePendingList := make(map[string]struct{})
+	for _, v := range utxos {
+		if _, ok := adc.UTXOInUse[v.Coin.GetPublicKey().String()]; ok {
+			UTXOInUsePendingList[v.Coin.GetPublicKey().String()] = struct{}{}
+		}
+	}
+	adc.UTXOInUse = UTXOInUsePendingList
 	adc.lock.Unlock()
 }
