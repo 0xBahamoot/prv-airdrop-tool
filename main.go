@@ -16,6 +16,7 @@ import (
 	"github.com/incognitochain/coin-service/shared"
 	"github.com/incognitochain/go-incognito-sdk-v2/coin"
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
+	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ var incClient *incclient.IncClient
 
 type UserAccount struct {
 	PaymentAddress     string
+	Pubkey             string
 	ShardID            int
 	TotalTokens        map[string]uint64
 	OngoingTxs         []string
@@ -112,14 +114,39 @@ func main() {
 
 func APIReqDrop(c *gin.Context) {
 	paymentkey := c.Query("paymentkey")
-	if paymentkey == "" {
+	pubkey := c.Query("pubkey")
+	forShield := c.Query("shield")
+	if paymentkey == "" && pubkey == "" {
 		c.JSON(http.StatusOK, gin.H{
-			"Result": 0,
+			"Result": -1,
 		})
 		return
 	}
 	adc.userlock.RLock()
-	if user, ok := adc.UserAccounts[paymentkey]; ok {
+	key := pubkey
+	shardID := 0
+	if paymentkey != "" {
+		wl, err := wallet.Base58CheckDeserialize(paymentkey)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": 0,
+				"Error":  err,
+			})
+		}
+		shardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
+		key = base58.Base58Check{}.Encode(wl.KeySet.PaymentAddress.Pk, 0)
+	}
+	if pubkey != "" {
+		pubkeyBytes, _, err := base58.Base58Check{}.Decode(pubkey)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": -1,
+				"Error":  err,
+			})
+		}
+		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
+	}
+	if user, ok := adc.UserAccounts[key]; ok {
 		adc.userlock.RUnlock()
 		_ = user
 		t := time.Unix(user.LastAirdropRequest, 0)
@@ -144,22 +171,19 @@ func APIReqDrop(c *gin.Context) {
 	}
 	adc.userlock.RUnlock()
 
-	wl, err := wallet.Base58CheckDeserialize(paymentkey)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"Result": 0,
-			"Error":  err,
-		})
-	}
-
 	newUserAccount := new(UserAccount)
 	newUserAccount.PaymentAddress = paymentkey
-	newUserAccount.ShardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
+	newUserAccount.Pubkey = pubkey
+	newUserAccount.ShardID = shardID
 	newUserAccount.Txs = make(map[string]*AirdropTxDetail)
 	adc.userlock.Lock()
-	adc.UserAccounts[paymentkey] = newUserAccount
+	adc.UserAccounts[pubkey] = newUserAccount
 	adc.userlock.Unlock()
-	go AirdropUser(newUserAccount)
+	shield := false
+	if forShield == "true" {
+		shield = true
+	}
+	go AirdropUser(newUserAccount, shield)
 	c.JSON(http.StatusOK, gin.H{
 		"Result": 1,
 	})
@@ -198,7 +222,7 @@ func GetTokenAmounts(paymentAddress string) (map[string]uint64, error) {
 	return result, nil
 }
 
-func AirdropUser(user *UserAccount) {
+func AirdropUser(user *UserAccount, forShield bool) {
 	total, err := GetTokenAmounts(user.PaymentAddress)
 	if err != nil {
 		panic(err)
@@ -213,9 +237,15 @@ func AirdropUser(user *UserAccount) {
 	// 	totalPRVAmountNeeded += (incclient.DefaultPRVFee + (AirdropCoinValue * PRVCoinPerTokenCoins)) * uint64(txNeedToSend)
 	// 	totalPRVCoinsNeeded += txNeedToSend
 	// }
+	if forShield {
+		totalPRVAmountNeeded = AirdropCoinShieldValue
+		totalPRVCoinsNeeded = 1
 
-	totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
-	totalPRVCoinsNeeded = len(user.TotalTokens) * 2
+	} else {
+		totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
+		totalPRVCoinsNeeded = len(user.TotalTokens) * 2
+
+	}
 
 	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)
 	airdropAccount.lock.Lock()
