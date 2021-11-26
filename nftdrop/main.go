@@ -95,16 +95,17 @@ func main() {
 		}
 	}
 	for _, acc := range adc.AirdropAccounts {
-		getAirdropAccountUTXOs(acc)
-		fmt.Println(acc.Privatekey, acc.TotalUTXO)
-		if acc.TotalUTXO < 20 {
-			go func(a *AirdropAccount) {
+		go func(a *AirdropAccount) {
+			getAirdropAccountUTXOs(a)
+			fmt.Println(a.Privatekey, a.TotalUTXO)
+			if a.TotalUTXO < 20 {
 				for i := 0; i < 40; i++ {
 					mintNFT(a)
 					time.Sleep(20 * time.Second)
 				}
-			}(acc)
-		}
+
+			}
+		}(acc)
 	}
 	adc.lastUsedADA = 0
 	airdroppedUser, err := LoadUserAirdropInfo()
@@ -116,6 +117,10 @@ func main() {
 		if len(v.OngoingTxs) != 0 {
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Minute)
 			go watchUserAirdropStatus(v, ctx)
+		} else {
+			if !v.AirdropSuccess {
+				AirdropNFT(v)
+			}
 		}
 	}
 	r := gin.Default()
@@ -180,6 +185,10 @@ func APIReqDrop(c *gin.Context) {
 	newUserAccount.Txs = make(map[string]*AirdropTxDetail)
 	adc.UserAccounts[pubkey] = newUserAccount
 	adc.userlock.Unlock()
+	err = UpdateUserAirdropInfo(newUserAccount)
+	if err != nil {
+		log.Println(err)
+	}
 	go AirdropNFT(newUserAccount)
 	c.JSON(http.StatusOK, gin.H{
 		"Result": 1,
