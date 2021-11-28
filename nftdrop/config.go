@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"io/ioutil"
 	"log"
-
-	"github.com/incognitochain/go-incognito-sdk-v2/common"
-	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
+	"time"
 )
 
 type Config struct {
@@ -22,6 +21,7 @@ type AirdropKey struct {
 var config Config
 
 func readConfig() {
+	log.Printf("Loading config...\n")
 	data, err := ioutil.ReadFile("./cfg.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -33,21 +33,44 @@ func readConfig() {
 		}
 	}
 
-	adc.airlock.Lock()
-	for _, key := range config.AirdropKeys {
-		wl, err := wallet.Base58CheckDeserialize(key.PrivateKey)
-		if err != nil {
-			panic(err)
-		}
-
-		acc := &AirdropAccount{
-			Privatekey:     key.PrivateKey,
-			PaymentAddress: wl.Base58CheckSerialize(wallet.PaymentAddressType),
-			ShardID:        int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31])),
-			NFTInUse:       make(map[string]struct{}),
-			NFTs:           make(map[string]Coin),
-		}
-		adc.AirdropAccounts = append(adc.AirdropAccounts, acc)
+	incClient, err = incclient.NewIncClientWithCache(config.Fullnode, "", 2)
+	if err != nil {
+		log.Fatal(err)
 	}
-	adc.airlock.Unlock()
+
+	privateKeys := make([]string, 0)
+	for _, key := range config.AirdropKeys {
+		privateKeys = append(privateKeys, key.PrivateKey)
+	}
+	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Loading accounts...")
+	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
+
+	for {
+		ready := true
+		for _, acc := range adc.AirdropAccounts.Accounts {
+			if !acc.available {
+				log.Printf("Account %v not ready!!\n", acc.PublicKey)
+				ready = false
+				break
+			}
+		}
+		if !ready {
+			time.Sleep(20 * time.Second)
+		} else {
+			log.Printf("All accounts are ready!!!\n")
+			break
+		}
+	}
+	go adc.AirdropAccounts.Sync()
+	go adc.AirdropAccounts.manageNFTs()
+	go adc.AirdropAccounts.managePRVUTXOs()
+	log.Println("Loaded config successfully!!")
 }

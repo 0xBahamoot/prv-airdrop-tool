@@ -3,12 +3,11 @@ module main
 go 1.16
 
 require (
-	github.com/ethereum/go-ethereum v1.10.7
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/validator/v10 v10.5.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/incognitochain/coin-service v1.0.1-0.20211119085356-47cbd5348574
-	github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211119000831-07e9ee0bcdbe
+	github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211128092206-22d964afd55a
 	github.com/incognitochain/incognito-chain v0.0.0-20211120025349-ceac8b55bcd3 // indirect
 	github.com/kamva/mgm/v3 v3.1.0
 	github.com/kr/text v0.2.0 // indirect
@@ -23,8 +22,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
-)
-
-replace (
-	github.com/incognitochain/go-incognito-sdk-v2 => /Users/truonglamchau/Dev/go-incognito-sdk-v2
 )
