@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"io/ioutil"
 	"log"
@@ -54,13 +55,18 @@ func readConfig() {
 	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
 	go adc.AirdropAccounts.Sync()
+	shardStatus := make(map[byte]bool)
 	for {
-		ready := false
+		ready := true
 		for _, acc := range adc.AirdropAccounts.Accounts {
 			if acc.isAvailable() {
-				log.Printf("Account %v is ready!!\n", acc.PublicKey)
-				ready = true
-				break
+				shardStatus[acc.ShardID] = true
+			}
+		}
+		for shard := 0; shard < common.MaxShardNumber; shard++ {
+			if !shardStatus[byte(shard)] {
+				ready = false
+				log.Printf("Shard %v not ready!!\n", shard)
 			}
 		}
 		if !ready {

@@ -47,14 +47,18 @@ func init() {
 	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
 	go adc.AirdropAccounts.Sync()
-	log.Println("Waiting for accounts to sync...")
+	shardStatus := make(map[byte]bool)
 	for {
-		ready := false
+		ready := true
 		for _, acc := range adc.AirdropAccounts.Accounts {
 			if acc.isAvailable() {
-				log.Printf("Account %v is ready!!\n", acc.PublicKey)
-				ready = true
-				break
+				shardStatus[acc.ShardID] = true
+			}
+		}
+		for shard := 0; shard < common.MaxShardNumber; shard++ {
+			if !shardStatus[byte(shard)] {
+				ready = false
+				log.Printf("Shard %v not ready!!\n", shard)
 			}
 		}
 		if !ready {
