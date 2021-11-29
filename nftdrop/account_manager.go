@@ -140,7 +140,7 @@ func (am *AccountManager) managePRVUTXOs() {
 				acc.updateSplittingStatus(true)
 				go func() {
 					logger.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
-					err = splitPRV(acc, 100, numSplitPRVs)
+					err = splitPRV(acc, incclient.DefaultPRVFee, numSplitPRVs)
 					if err != nil {
 						logger.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
 					} else {

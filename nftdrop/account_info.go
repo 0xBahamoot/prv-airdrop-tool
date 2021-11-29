@@ -119,29 +119,38 @@ func (account AccountInfo) isAvailable() bool {
 
 func (account *AccountInfo) updateAvailableStatus(status bool) {
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	if account.available != status {
 		account.available = status
 		logger.Printf("Account %v: available %v\n", account.toString(), account.available)
 	}
-	account.mtx.Unlock()
 }
 
 func (account *AccountInfo) updateMintingStatus(status bool) {
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	account.isMinting = status
 	logger.Printf("Account %v: isMinting %v\n", account.toString(), account.isMinting)
-	account.mtx.Unlock()
 }
 
 func (account *AccountInfo) updateSplittingStatus(status bool) {
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	account.isSplitting = status
 	logger.Printf("Account %v: isSplitting %v\n", account.toString(), account.isSplitting)
-	account.mtx.Unlock()
 }
 
 func (account AccountInfo) clone() *AccountInfo {
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	newAccount := &AccountInfo{
 		available:      account.available,
 		isSplitting:    account.isSplitting,
@@ -167,7 +176,6 @@ func (account AccountInfo) clone() *AccountInfo {
 		}
 		tokenList[tokenID] = &tmpTokenInfo
 	}
-	account.mtx.Unlock()
 	newAccount.TokenList = tokenList
 
 	return newAccount
@@ -431,6 +439,9 @@ func (account AccountInfo) GetRandomNFT() (string, error) {
 func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
 	logger.Printf("[ClearTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
 			snStr := base58.Base58Check{}.Encode(pCoin.Coin.GetKeyImage().ToBytesS(), common.ZeroByte)
@@ -445,25 +456,29 @@ func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
 			tokenInfo.updateUTXOState(snStr, 0)
 		}
 	}
-	account.mtx.Unlock()
 }
 
 // MarkTempUsed temporarily marks a list of TXOs as used.
 func (account *AccountInfo) MarkTempUsed(tokenID string, coinList []Coin) {
 	//logger.Printf("[MarkTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
 			snStr := base58.Base58Check{}.Encode(pCoin.Coin.GetKeyImage().ToBytesS(), common.ZeroByte)
 			tokenInfo.updateUTXOState(snStr, 1)
 		}
 	}
-	account.mtx.Unlock()
 }
 
 // MarkUsed marks a list of TXOs as used.
 func (account *AccountInfo) MarkUsed(tokenID string, coinList []Coin) {
 	account.mtx.Lock()
+	defer func() {
+		account.mtx.Unlock()
+	}()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
 			snStr := base58.Base58Check{}.Encode(pCoin.Coin.GetKeyImage().ToBytesS(), common.ZeroByte)
@@ -471,7 +486,7 @@ func (account *AccountInfo) MarkUsed(tokenID string, coinList []Coin) {
 			delete(tokenInfo.UTXOList, snStr)
 		}
 	}
-	account.mtx.Unlock()
+
 }
 
 //// SyncAllUTXOs calls the remote node and update the list of UTXOs.
