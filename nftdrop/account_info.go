@@ -124,26 +124,28 @@ func (account *AccountInfo) updateAvailableStatus(status bool) {
 	}()
 	if account.available != status {
 		account.available = status
-		logger.Printf("Account %v: available %v\n", account.toString(), account.available)
+		logger.Printf("%v: available %v\n", account.toString(), account.available)
 	}
 }
 
 func (account *AccountInfo) updateMintingStatus(status bool) {
+	logger.Printf("%v: updating minting status to %v\n", account.toString(), status)
 	account.mtx.Lock()
 	defer func() {
 		account.mtx.Unlock()
 	}()
 	account.isMinting = status
-	logger.Printf("Account %v: isMinting %v\n", account.toString(), account.isMinting)
+	logger.Printf("%v: isMinting %v\n", account.toString(), account.isMinting)
 }
 
 func (account *AccountInfo) updateSplittingStatus(status bool) {
+	logger.Printf("%v: updating splitting status to %v\n", account.toString(), status)
 	account.mtx.Lock()
 	defer func() {
 		account.mtx.Unlock()
 	}()
 	account.isSplitting = status
-	logger.Printf("Account %v: isSplitting %v\n", account.toString(), account.isSplitting)
+	logger.Printf("%v: isSplitting %v\n", account.toString(), account.isSplitting)
 }
 
 func (account AccountInfo) clone() *AccountInfo {

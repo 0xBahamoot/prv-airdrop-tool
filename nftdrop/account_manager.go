@@ -82,7 +82,11 @@ func (am *AccountManager) GetBalance(privateKey, tokenID string) (uint64, error)
 func (am *AccountManager) GetRandomAirdropAccount(shardID byte) (*AccountInfo, error) {
 	for _, acc := range am.Accounts {
 		nftList, _ := acc.GetMyNFTs()
-		if acc.isAvailable() && !acc.isMinting && len(nftList) > 0 { // skip if account not ready
+		if acc.isAvailable() && len(nftList) > 0 { // skip if account not ready
+			utxoList, _ := acc.GetListUnspentOutput(common.PRVIDStr)
+			if len(utxoList) == 0 {
+				continue
+			}
 			if shardID >= byte(common.MaxShardNumber) {
 				return acc, nil
 			}
@@ -109,14 +113,15 @@ func (am *AccountManager) manageNFTs() {
 				continue
 			}
 			logger.Printf("[manageNFTs] Account %v, isMinting %v, #NFTs %v\n", acc.toString(), acc.isMinting, len(myNFTs))
-			if len(myNFTs) < 20 && !acc.isMinting { // avoid multiple minting
-				acc.updateMintingStatus(true)
-				go func() {
+			if len(myNFTs) < 20 && !acc.isMinting && !acc.isSplitting { // avoid multiple minting
+				go func(acc *AccountInfo) {
+					acc.updateMintingStatus(true)
 					logger.Printf("Minting NFTs for account %v, numNFTs %v\n", acc.toString(), len(myNFTs))
 					mintNFTMany(acc, numMintBatchNFTs)
+					logger.Printf("%v: mintNFTMany finished\n", acc.toString())
 					time.Sleep(time.Duration(defaultSleepTime) * time.Second)
 					acc.updateMintingStatus(false)
-				}()
+				}(acc)
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -130,24 +135,25 @@ func (am *AccountManager) managePRVUTXOs() {
 			if !acc.isAvailable() { // skip if account not ready
 				continue
 			}
-			utxoList, err := acc.GetUTXOsByAmount(common.PRVIDStr, incclient.DefaultPRVFee)
+			utxoList, err := acc.GetListUnspentOutput(common.PRVIDStr)
 			if err != nil {
 				logger.Println(err)
 				continue
 			}
 			logger.Printf("[managePRVUTXOs] Account %v, isSplitting %v, #UTXOs %v\n", acc.toString(), acc.isSplitting, len(utxoList))
 			if len(utxoList) < 20 && !acc.isSplitting {
-				acc.updateSplittingStatus(true)
-				go func() {
+				go func(acc *AccountInfo) {
+					acc.updateSplittingStatus(true)
 					logger.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
-					err = splitPRV(acc, incclient.DefaultPRVFee, numSplitPRVs)
+					err = splitPRV(acc, 2 * incclient.DefaultPRVFee, numSplitPRVs)
 					if err != nil {
 						logger.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
 					} else {
-						time.Sleep(5 * time.Minute)
+						logger.Printf("%v splitPRV finished\n", acc.toString())
+						time.Sleep(time.Duration(defaultSleepTime) * time.Second)
 					}
 					acc.updateSplittingStatus(false)
-				}()
+				}(acc)
 				time.Sleep(1 * time.Second)
 			}
 		}
