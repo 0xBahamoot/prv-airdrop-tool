@@ -6,6 +6,7 @@ import (
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -233,21 +234,52 @@ func (account *AccountInfo) Update() {
 		}
 		account.updateAvailableStatus(err == nil)
 	}()
-	accName := account.toString()
+	cloneAccount := account.clone()
+	accName := cloneAccount.toString()
 	logger.Printf("RE-SYNC ACCOUNT %v\n", accName)
 
 	start := time.Now()
 	tokenInfoList := make(map[string]*TokenInfo, 0)
-	nftTokens, err := incClient.GetListNftIDs(0)
-	if err != nil {
-		return
-	}
-	cloneAccount := account.clone()
+	var nftTokens map[string]uint64
+	var allUTXOs map[string][]coin.PlainCoin
+	var allIndices map[string][]*big.Int
 
-	allUTXOs, allIndices, err := incClient.GetAllUTXOsV2(cloneAccount.PrivateKey)
-	if err != nil {
-		return
+	go func() {
+		nftTokens, err = incClient.GetListNftIDs(0)
+		if err != nil {
+			return
+		}
+	}()
+	go func() {
+		allUTXOs, allIndices, err = incClient.GetAllUTXOsV2(cloneAccount.PrivateKey)
+		if err != nil {
+			return
+		}
+	}()
+
+	finished := false
+	for {
+		select {
+		default:
+			if err != nil {
+				return
+			}
+			if nftTokens == nil {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			if allUTXOs == nil {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			finished = true
+			break
+		}
+		if finished {
+			break
+		}
 	}
+	
 	nftCount := 0
 	for tokenID, utxoList := range allUTXOs {
 		if tokenID == common.ConfidentialAssetID.String() {
