@@ -15,7 +15,7 @@ import (
 func init() {
 	log.Println("This runs before tests!!")
 	var err error
-	incClient, err = incclient.NewIncClientWithCache("http://198.54.113.106:9334", "", 2, "testnet")
+	incClient, err = incclient.NewTestNetClientWithCache()
 	if err != nil {
 		log.Fatal(err)
 	}
