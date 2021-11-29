@@ -158,7 +158,7 @@ func AirdropNFT(user *UserAccount) {
 		}
 		txHash, nftID, err := transferNFT(airdropAccount, user.PaymentAddress)
 		if err != nil {
-			logger.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.PublicKey, user.Pubkey, attempt, err)
+			logger.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.toString(), user.Pubkey, attempt, err)
 			attempt++
 			time.Sleep(10 * time.Second)
 			continue
