@@ -114,7 +114,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			}
 			err = transferPRV(acc, addrList, amountList, nil, nil)
 			if err != nil {
-				if !strings.Contains(err.Error(), "reject") {
+				if !strings.Contains(err.Error(), "reject") && !strings.Contains(err.Error(), "Reject") {
 					logger.Printf("transferPRV %v error: %v\n", acc.toString(), err)
 				}
 

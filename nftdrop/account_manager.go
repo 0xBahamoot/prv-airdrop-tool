@@ -54,7 +54,7 @@ func (am *AccountManager) UpdateAccount(privateKey string) {
 
 	for {
 		account.Update()
-		time.Sleep(40 * time.Second)
+		time.Sleep(60 * time.Second)
 	}
 }
 
