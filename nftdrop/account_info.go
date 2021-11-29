@@ -231,7 +231,7 @@ func (account *AccountInfo) Update() {
 		account.updateAvailableStatus(err == nil)
 	}()
 	accName := account.toString()
-	logger.Printf("RE-SYNC ACCOUNT %v\n", accName)
+	logger.Printf("RE-SYNC ACCOUNT %v, SHARD %v\n", accName, account.ShardID)
 
 	start := time.Now()
 	tokenInfoList := make(map[string]*TokenInfo, 0)
@@ -300,7 +300,7 @@ func (account *AccountInfo) Update() {
 		}
 	}
 	logger.Printf("%v: numNFTs %v\n", accName, nftCount)
-	logger.Printf("RE-SYNC ACCOUNT %v FINISHED, TIME %v\n\n", accName, time.Since(start).Seconds())
+	logger.Printf("RE-SYNC ACCOUNT %v, SHARD %v FINISHED, TIME %v\n\n", accName, account.ShardID, time.Since(start).Seconds())
 
 	account.mtx.Lock()
 	account.TokenList = tokenInfoList
