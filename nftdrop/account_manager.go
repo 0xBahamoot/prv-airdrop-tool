@@ -55,7 +55,7 @@ func (am *AccountManager) UpdateAccount(privateKey string) {
 
 	for {
 		account.Update()
-		time.Sleep(120 * time.Second)
+		time.Sleep(40 * time.Second)
 	}
 }
 
@@ -82,7 +82,7 @@ func (am *AccountManager) GetBalance(privateKey, tokenID string) (uint64, error)
 // GetRandomAccount returns a random account for a given shard.
 func (am *AccountManager) GetRandomAccount(shardID byte) (*AccountInfo, error) {
 	for _, acc := range am.Accounts {
-		if acc.available { // skip if account not ready
+		if acc.isAvailable() { // skip if account not ready
 			if shardID >= byte(common.MaxShardNumber) {
 				return acc, nil
 			}
@@ -97,7 +97,7 @@ func (am *AccountManager) GetRandomAccount(shardID byte) (*AccountInfo, error) {
 func (am *AccountManager) manageNFTs() {
 	for {
 		for _, acc := range am.Accounts {
-			if !acc.available { // skip if account not ready
+			if !acc.isAvailable() { // skip if account not ready
 				continue
 			}
 			myNFTs, err := acc.GetMyNFTs()
@@ -105,10 +105,11 @@ func (am *AccountManager) manageNFTs() {
 				log.Println(err)
 				continue
 			}
+			log.Printf("[manageNFTs] Account %v, isMinting %v, #NFTs %v\n", acc.toString(), acc.isMinting, len(myNFTs))
 			if len(myNFTs) < 20 && !acc.isMinting { // avoid multiple minting
+				acc.updateMintingStatus(true)
 				go func() {
 					log.Printf("Minting NFTs for account %v, numNFTs %v\n", acc.toString(), len(myNFTs))
-					acc.updateMintingStatus(true)
 					mintNFTMany(acc, numMintBatchNFTs)
 					time.Sleep(time.Duration(defaultSleepTime) * time.Second)
 					acc.updateMintingStatus(false)
@@ -123,7 +124,7 @@ func (am *AccountManager) manageNFTs() {
 func (am *AccountManager) managePRVUTXOs() {
 	for {
 		for _, acc := range am.Accounts {
-			if !acc.available { // skip if account not ready
+			if !acc.isAvailable() { // skip if account not ready
 				continue
 			}
 			utxoList, err := acc.GetUTXOsByAmount(common.PRVIDStr, incclient.DefaultPRVFee)
@@ -131,13 +132,16 @@ func (am *AccountManager) managePRVUTXOs() {
 				log.Println(err)
 				continue
 			}
+			log.Printf("[managePRVUTXOs] Account %v, isSplitting %v, #UTXOs %v\n", acc.toString(), acc.isSplitting, len(utxoList))
 			if len(utxoList) < 20 && !acc.isSplitting {
+				acc.updateSplittingStatus(true)
 				go func() {
-					acc.updateSplittingStatus(true)
 					log.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
 					err = splitPRV(acc, 100, numSplitPRVs)
 					if err != nil {
 						log.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
+					} else {
+						time.Sleep(5 * time.Minute)
 					}
 					acc.updateSplittingStatus(false)
 				}()

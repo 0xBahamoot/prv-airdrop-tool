@@ -36,6 +36,13 @@ func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneC
 		return err
 	}
 	acc.MarkTempUsed(common.PRVIDStr, coinsToSpend)
+	defer func() {
+		if err != nil {
+			if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
+				acc.ClearTempUsed(common.PRVIDStr, coinsToSpend)
+			}
+		}
+	}()
 
 	coinList := make([]coin.PlainCoin, 0)
 	idxList := make([]uint64, 0)
@@ -47,7 +54,6 @@ func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneC
 	txParam := incclient.NewTxParam(acc.PrivateKey, addrList, amountList, 0, nil, nil, nil)
 	encodedTx, txHash, err := incClient.CreateRawTransactionWithInputCoins(txParam, coinList, idxList)
 	if err != nil {
-		acc.ClearTempUsed(common.PRVIDStr, coinsToSpend)
 		if errChan != nil {
 			errChan <- err
 		}
@@ -56,13 +62,12 @@ func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneC
 	}
 	err = incClient.SendRawTx(encodedTx)
 	if err != nil {
-		acc.ClearTempUsed(common.PRVIDStr, coinsToSpend)
 		if errChan != nil {
 			errChan <- err
 		}
 		return err
 	}
-	log.Printf("TransferPRV TxHash: %v\n", txHash)
+	log.Printf("TransferPRV %v TxHash: %v\n", acc.toString(), txHash)
 
 	waitingCheckTxInBlock(acc, txHash, common.PRVIDStr, coinsToSpend)
 	if doneChan != nil {
@@ -95,8 +100,10 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			}
 			err = transferPRV(acc, addrList, amountList, nil, nil)
 			if err != nil {
-				log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
-				time.Sleep(10 * time.Second)
+				if !strings.Contains(err.Error(), "reject") {
+					log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
+				}
+				time.Sleep(40 * time.Second)
 				continue
 			}
 			remaining = 0
@@ -115,11 +122,14 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			}
 			err = transferPRV(acc, addrList, amountList, nil, nil)
 			if err != nil {
-				log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
-				time.Sleep(10 * time.Second)
+				if !strings.Contains(err.Error(), "reject") {
+					log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
+				}
+
+				time.Sleep(30 * time.Second)
 				continue
 			}
-			time.Sleep(40 * time.Second)
+			acc.Update()
 
 			doneChan := make(chan string, numTxs)
 			errChan := make(chan error, numTxs)
@@ -229,6 +239,14 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 	log.Printf("%v CoinToSpendIdx: %v, amount: %v, %v\n",
 		acc.toString(), coinsToSpend[0].Index, coinsToSpend[0].Coin.GetValue(), time.Since(tmpStart).Seconds())
 	acc.MarkTempUsed(common.PRVIDStr, coinsToSpend)
+	defer func() {
+		if err != nil {
+			if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
+				acc.ClearTempUsed(common.PRVIDStr, coinsToSpend)
+			}
+		}
+	}()
+
 	coinList := make([]coin.PlainCoin, 0)
 	idxList := make([]uint64, 0)
 	for _, c := range coinsToSpend {
@@ -244,10 +262,6 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 	}
 	err = incClient.SendRawTx(encodedTx)
 	if err != nil {
-		if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
-			acc.ClearTempUsed(common.PRVIDStr, coinsToSpend)
-		}
-
 		errChan <- err
 		return
 	}
@@ -342,6 +356,7 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 }
 
 func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error) {
+	var err error
 	prvCoinsToSpend, err := acc.ChooseBestUTXOs(common.PRVIDStr, incclient.DefaultPRVFee)
 	if err != nil {
 		return "", "", err
@@ -358,6 +373,14 @@ func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error
 	}
 	acc.MarkTempUsed(common.PRVIDStr, prvCoinsToSpend)
 	acc.MarkTempUsed(nftID, nftCoinToSpend)
+	defer func() {
+		if err != nil {
+			if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
+				acc.ClearTempUsed(nftID, nftCoinToSpend)
+				acc.ClearTempUsed(common.PRVIDStr, prvCoinsToSpend)
+			}
+		}
+	}()
 
 	prvCoinList := make([]coin.PlainCoin, 0)
 	prvIdxList := make([]uint64, 0)
@@ -380,17 +403,10 @@ func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error
 		txParam, nftCoinList,
 		nftIdxList, prvCoinList, prvIdxList)
 	if err != nil {
-		acc.ClearTempUsed(nftID, nftCoinToSpend)
-		acc.ClearTempUsed(common.PRVIDStr, prvCoinsToSpend)
 		return "", "", err
 	}
 	err = incClient.SendRawTokenTx(encodedTx)
 	if err != nil {
-		acc.ClearTempUsed(nftID, nftCoinToSpend)
-		if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
-			acc.ClearTempUsed(common.PRVIDStr, prvCoinsToSpend)
-		}
-
 		return "", "", err
 	}
 

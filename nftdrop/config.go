@@ -53,23 +53,22 @@ func readConfig() {
 	}
 	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
+	go adc.AirdropAccounts.Sync()
 	for {
-		ready := true
+		ready := false
 		for _, acc := range adc.AirdropAccounts.Accounts {
-			if !acc.available {
-				log.Printf("Account %v not ready!!\n", acc.PublicKey)
-				ready = false
+			if acc.isAvailable() {
+				log.Printf("Account %v is ready!!\n", acc.PublicKey)
+				ready = true
 				break
 			}
 		}
 		if !ready {
-			time.Sleep(20 * time.Second)
+			time.Sleep(10 * time.Second)
 		} else {
-			log.Printf("All accounts are ready!!!\n")
 			break
 		}
 	}
-	go adc.AirdropAccounts.Sync()
 	go adc.AirdropAccounts.manageNFTs()
 	go adc.AirdropAccounts.managePRVUTXOs()
 	log.Println("Loaded config successfully!!")

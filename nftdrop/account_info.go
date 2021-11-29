@@ -42,6 +42,11 @@ func NewTokenInfo(isNFT bool) *TokenInfo {
 	}
 }
 
+// getUTXOState returns the state of a UTXO:
+//	-1: not found
+//	0: unspent
+//  1: temporarily used (in pool)
+//	2: spent (in block)
 func (t *TokenInfo) getUTXOState(snStr string) int {
 	val, ok := t.UTXOState.Load(snStr)
 	if !ok {
@@ -103,21 +108,44 @@ func (account AccountInfo) toString() string {
 	return fmt.Sprintf("%v...%v", account.PrivateKey[:5], account.PrivateKey[len(account.PrivateKey)-5:])
 }
 
-func (account AccountInfo) updateMintingStatus(status bool) {
+func (account AccountInfo) isAvailable() bool {
+	res := false
 	account.mtx.Lock()
-	account.isMinting = status
+	res = account.available
+	account.mtx.Unlock()
+
+	return res
+}
+
+func (account *AccountInfo) updateAvailableStatus(status bool) {
+	account.mtx.Lock()
+	if account.available != status {
+		account.available = status
+		log.Printf("Account %v: available %v\n", account.toString(), account.available)
+	}
 	account.mtx.Unlock()
 }
 
-func (account AccountInfo) updateSplittingStatus(status bool) {
+func (account *AccountInfo) updateMintingStatus(status bool) {
+	account.mtx.Lock()
+	account.isMinting = status
+	log.Printf("Account %v: isMinting %v\n", account.toString(), account.isMinting)
+	account.mtx.Unlock()
+}
+
+func (account *AccountInfo) updateSplittingStatus(status bool) {
 	account.mtx.Lock()
 	account.isSplitting = status
+	log.Printf("Account %v: isSplitting %v\n", account.toString(), account.isSplitting)
 	account.mtx.Unlock()
 }
 
 func (account AccountInfo) clone() *AccountInfo {
 	account.mtx.Lock()
 	newAccount := &AccountInfo{
+		available:      account.available,
+		isSplitting:    account.isSplitting,
+		isMinting:      account.isMinting,
 		mtx:            new(sync.RWMutex),
 		PaymentAddress: account.PaymentAddress,
 		PublicKey:      account.PublicKey,
@@ -129,13 +157,8 @@ func (account AccountInfo) clone() *AccountInfo {
 	tokenList := make(map[string]*TokenInfo)
 	for tokenID, tokenInfo := range account.TokenList {
 		utxoList := make(map[string]Coin)
-		//utxoState := new(sync.Map)
 		for snStr, utxo := range tokenInfo.UTXOList {
 			utxoList[snStr] = utxo
-			//state := tokenInfo.getUTXOState(snStr)
-			//if state != -1 {
-			//	utxoState.Store(snStr, state)
-			//}
 		}
 		tmpTokenInfo := TokenInfo{
 			UTXOList:  utxoList,
@@ -204,6 +227,10 @@ func (account AccountInfo) GetUTXOsByAmount(tokenID string, amount uint64) ([]Co
 
 // Update re-scans the UTXOs of the account.
 func (account *AccountInfo) Update() {
+	var err error
+	defer func() {
+		account.updateAvailableStatus(err == nil)
+	}()
 	accName := account.toString()
 	log.Printf("RE-SYNC ACCOUNT %v\n", accName)
 
@@ -217,7 +244,6 @@ func (account *AccountInfo) Update() {
 	cloneAccount := account.clone()
 
 	allUTXOs, allIndices, err := incClient.GetAllUTXOsV2(cloneAccount.PrivateKey)
-	//allUTXOs, allIndices, err := cloneAccount.SyncAllUTXOs()
 	if err != nil {
 		log.Printf("%v: GetAllUTXOsV2 error: %v\n", accName, err)
 		return
@@ -238,19 +264,28 @@ func (account *AccountInfo) Update() {
 		}
 		balance := uint64(0)
 		listUnspent := tokenInfo.UTXOList
+		tmpMapSNStr := make(map[string]interface{})
 		for i, utxo := range utxoList {
 			if utxo.GetVersion() != 2 {
 				continue
 			}
 			snStr := base58.Base58Check{}.Encode(utxo.GetKeyImage().ToBytesS(), common.ZeroByte)
+			tmpMapSNStr[snStr] = true
 			if _, ok := listUnspent[snStr]; ok {
-				if tokenInfo.getUTXOState(snStr) == 0 {
+				if tokenInfo.getUTXOState(snStr) <= 0 {
+					tokenInfo.updateUTXOState(snStr, 0)
 					balance += utxo.GetValue()
 				}
 			} else {
 				listUnspent[snStr] = Coin{Coin: utxo, Index: allIndices[tokenID][i].Uint64()}
 				tokenInfo.updateUTXOState(snStr, 0)
 				balance += utxo.GetValue()
+			}
+		}
+		for snStr, _ := range listUnspent {
+			if _, ok := tmpMapSNStr[snStr]; !ok {
+				tokenInfo.updateUTXOState(snStr, 2)
+				delete(listUnspent, snStr)
 			}
 		}
 
@@ -270,9 +305,6 @@ func (account *AccountInfo) Update() {
 
 	account.mtx.Lock()
 	account.TokenList = tokenInfoList
-	if !account.available {
-		account.available = true
-	}
 	account.mtx.Unlock()
 }
 
@@ -295,6 +327,9 @@ func (account AccountInfo) ChooseBestUTXOs(tokenID string, requiredAmount uint64
 	utxoList, err := account.GetListUnspentOutput(tokenID)
 	if err != nil {
 		return nil, err
+	}
+	if len(utxoList) == 0 {
+		return nil, fmt.Errorf("no UTXO found for %v", tokenID)
 	}
 
 	if balance == requiredAmount {
@@ -340,7 +375,9 @@ func (account AccountInfo) GetMyNFTs() (map[string]*TokenInfo, error) {
 		if !tokenInfo.IsNFT {
 			continue
 		}
-		res[tokenID] = tokenInfo
+		if clonedAcc.GetBalance(tokenID) == 1 {
+			res[tokenID] = tokenInfo
+		}
 	}
 	return res, nil
 }
@@ -352,9 +389,7 @@ func (account AccountInfo) GetRandomNFT() (string, error) {
 		return "", err
 	}
 	for tokenID, _ := range myNFTs {
-		if account.GetBalance(tokenID) == 1 {
-			return tokenID, nil
-		}
+		return tokenID, nil
 	}
 
 	return "", fmt.Errorf("no NFT available")
@@ -362,6 +397,8 @@ func (account AccountInfo) GetRandomNFT() (string, error) {
 
 // ClearTempUsed clears the temporarily used status of a list of TXOs.
 func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
+	log.Printf("[ClearTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
+	account.mtx.Lock()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
 			snStr := base58.Base58Check{}.Encode(pCoin.Coin.GetKeyImage().ToBytesS(), common.ZeroByte)
@@ -376,16 +413,20 @@ func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
 			tokenInfo.updateUTXOState(snStr, 0)
 		}
 	}
+	account.mtx.Unlock()
 }
 
 // MarkTempUsed temporarily marks a list of TXOs as used.
 func (account *AccountInfo) MarkTempUsed(tokenID string, coinList []Coin) {
+	//log.Printf("[MarkTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
+	account.mtx.Lock()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
 			snStr := base58.Base58Check{}.Encode(pCoin.Coin.GetKeyImage().ToBytesS(), common.ZeroByte)
 			tokenInfo.updateUTXOState(snStr, 1)
 		}
 	}
+	account.mtx.Unlock()
 }
 
 // MarkUsed marks a list of TXOs as used.
