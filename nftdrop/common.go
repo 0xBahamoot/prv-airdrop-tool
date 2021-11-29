@@ -54,7 +54,7 @@ func waitingCheckTxInBlock(acc *AccountInfo, txHash, tokenIDStr string, utxoList
 		select {
 		case <-ctx.Done():
 			// We assume timed-out = failed
-			log.Printf("Checking status of tx %v timed-out\n", txHash)
+			logger.Printf("Checking status of tx %v timed-out\n", txHash)
 			acc.ClearTempUsed(tokenIDStr, utxoList)
 			return
 		default:
@@ -62,7 +62,7 @@ func waitingCheckTxInBlock(acc *AccountInfo, txHash, tokenIDStr string, utxoList
 			if err != nil || !isInBlock {
 				time.Sleep(10 * time.Second)
 			} else {
-				//log.Printf("Tx %v is in block\n", txHash)
+				//logger.Printf("Tx %v is in block\n", txHash)
 				success = true
 				acc.MarkUsed(tokenIDStr, utxoList)
 				time.Sleep(10 * time.Second)
@@ -78,7 +78,7 @@ func watchUserAirdropStatus(user *UserAccount, ctx context.Context) {
 	defer func() {
 		err := UpdateUserAirdropInfo(user)
 		if err != nil {
-			log.Println(err)
+			logger.Println(err)
 		}
 		if !user.AirdropSuccess {
 			AirdropNFT(user)
@@ -108,11 +108,11 @@ func watchUserAirdropStatus(user *UserAccount, ctx context.Context) {
 			user.OngoingTxs = txToWatchLeft
 			err := UpdateUserAirdropInfo(user)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 			}
 			if len(user.OngoingTxs) == 0 {
 				user.AirdropSuccess = true
-				log.Println("Done airdrop for user", user.PaymentAddress)
+				logger.Println("Done airdrop for user", user.PaymentAddress)
 				return
 			}
 			time.Sleep(15 * time.Second)

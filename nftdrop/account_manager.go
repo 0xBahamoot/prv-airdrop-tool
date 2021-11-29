@@ -49,7 +49,7 @@ func (am *AccountManager) Sync() {
 func (am *AccountManager) UpdateAccount(privateKey string) {
 	account := am.Accounts[privateKey]
 	if account == nil {
-		log.Println("account not found")
+		logger.Println("account not found")
 		return
 	}
 
@@ -106,14 +106,14 @@ func (am *AccountManager) manageNFTs() {
 			}
 			myNFTs, err := acc.GetMyNFTs()
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 				continue
 			}
-			log.Printf("[manageNFTs] Account %v, isMinting %v, #NFTs %v\n", acc.toString(), acc.isMinting, len(myNFTs))
+			logger.Printf("[manageNFTs] Account %v, isMinting %v, #NFTs %v\n", acc.toString(), acc.isMinting, len(myNFTs))
 			if len(myNFTs) < 20 && !acc.isMinting { // avoid multiple minting
 				acc.updateMintingStatus(true)
 				go func() {
-					log.Printf("Minting NFTs for account %v, numNFTs %v\n", acc.toString(), len(myNFTs))
+					logger.Printf("Minting NFTs for account %v, numNFTs %v\n", acc.toString(), len(myNFTs))
 					mintNFTMany(acc, numMintBatchNFTs)
 					time.Sleep(time.Duration(defaultSleepTime) * time.Second)
 					acc.updateMintingStatus(false)
@@ -133,17 +133,17 @@ func (am *AccountManager) managePRVUTXOs() {
 			}
 			utxoList, err := acc.GetUTXOsByAmount(common.PRVIDStr, incclient.DefaultPRVFee)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 				continue
 			}
-			log.Printf("[managePRVUTXOs] Account %v, isSplitting %v, #UTXOs %v\n", acc.toString(), acc.isSplitting, len(utxoList))
+			logger.Printf("[managePRVUTXOs] Account %v, isSplitting %v, #UTXOs %v\n", acc.toString(), acc.isSplitting, len(utxoList))
 			if len(utxoList) < 20 && !acc.isSplitting {
 				acc.updateSplittingStatus(true)
 				go func() {
-					log.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
+					logger.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
 					err = splitPRV(acc, 100, numSplitPRVs)
 					if err != nil {
-						log.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
+						logger.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
 					} else {
 						time.Sleep(5 * time.Minute)
 					}

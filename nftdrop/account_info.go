@@ -121,7 +121,7 @@ func (account *AccountInfo) updateAvailableStatus(status bool) {
 	account.mtx.Lock()
 	if account.available != status {
 		account.available = status
-		log.Printf("Account %v: available %v\n", account.toString(), account.available)
+		logger.Printf("Account %v: available %v\n", account.toString(), account.available)
 	}
 	account.mtx.Unlock()
 }
@@ -129,14 +129,14 @@ func (account *AccountInfo) updateAvailableStatus(status bool) {
 func (account *AccountInfo) updateMintingStatus(status bool) {
 	account.mtx.Lock()
 	account.isMinting = status
-	log.Printf("Account %v: isMinting %v\n", account.toString(), account.isMinting)
+	logger.Printf("Account %v: isMinting %v\n", account.toString(), account.isMinting)
 	account.mtx.Unlock()
 }
 
 func (account *AccountInfo) updateSplittingStatus(status bool) {
 	account.mtx.Lock()
 	account.isSplitting = status
-	log.Printf("Account %v: isSplitting %v\n", account.toString(), account.isSplitting)
+	logger.Printf("Account %v: isSplitting %v\n", account.toString(), account.isSplitting)
 	account.mtx.Unlock()
 }
 
@@ -232,20 +232,20 @@ func (account *AccountInfo) Update() {
 		account.updateAvailableStatus(err == nil)
 	}()
 	accName := account.toString()
-	log.Printf("RE-SYNC ACCOUNT %v\n", accName)
+	logger.Printf("RE-SYNC ACCOUNT %v\n", accName)
 
 	start := time.Now()
 	tokenInfoList := make(map[string]*TokenInfo, 0)
 	nftTokens, err := incClient.GetListNftIDs(0)
 	if err != nil {
-		log.Printf("%v: GetListNftIDs error: %v\n", accName, err)
+		logger.Printf("%v: GetListNftIDs error: %v\n", accName, err)
 		return
 	}
 	cloneAccount := account.clone()
 
 	allUTXOs, allIndices, err := incClient.GetAllUTXOsV2(cloneAccount.PrivateKey)
 	if err != nil {
-		log.Printf("%v: GetAllUTXOsV2 error: %v\n", accName, err)
+		logger.Printf("%v: GetAllUTXOsV2 error: %v\n", accName, err)
 		return
 	}
 	nftCount := 0
@@ -293,15 +293,15 @@ func (account *AccountInfo) Update() {
 		if balance > 0 {
 			tokenInfoList[tokenID] = tokenInfo
 			if tokenID == common.PRVIDStr {
-				log.Printf("%v: balancePRV %v, numUTXOs: %v\n", accName, balance, len(listUnspent))
+				logger.Printf("%v: balancePRV %v, numUTXOs: %v\n", accName, balance, len(listUnspent))
 			}
 			if tokenInfo.IsNFT {
 				nftCount++
 			}
 		}
 	}
-	log.Printf("%v: numNFTs %v\n", accName, nftCount)
-	log.Printf("RE-SYNC ACCOUNT %v FINISHED, TIME %v\n\n", accName, time.Since(start).Seconds())
+	logger.Printf("%v: numNFTs %v\n", accName, nftCount)
+	logger.Printf("RE-SYNC ACCOUNT %v FINISHED, TIME %v\n\n", accName, time.Since(start).Seconds())
 
 	account.mtx.Lock()
 	account.TokenList = tokenInfoList
@@ -397,7 +397,7 @@ func (account AccountInfo) GetRandomNFT() (string, error) {
 
 // ClearTempUsed clears the temporarily used status of a list of TXOs.
 func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
-	log.Printf("[ClearTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
+	logger.Printf("[ClearTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
 	account.mtx.Lock()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {
@@ -418,7 +418,7 @@ func (account *AccountInfo) ClearTempUsed(tokenID string, coinList []Coin) {
 
 // MarkTempUsed temporarily marks a list of TXOs as used.
 func (account *AccountInfo) MarkTempUsed(tokenID string, coinList []Coin) {
-	//log.Printf("[MarkTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
+	//logger.Printf("[MarkTempUsed] account %v: %v - %v\n", account.toString(), tokenID, coinList[0].Index)
 	account.mtx.Lock()
 	if tokenInfo, ok := account.TokenList[tokenID]; ok {
 		for _, pCoin := range coinList {

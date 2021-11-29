@@ -22,7 +22,7 @@ type AirdropKey struct {
 var config Config
 
 func readConfig() {
-	log.Printf("Loading config...\n")
+	logger.Printf("Loading config...\n")
 	data, err := ioutil.ReadFile("./cfg.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -47,12 +47,12 @@ func readConfig() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Loading accounts...")
+	logger.Println("Loading accounts...")
 	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
+	logger.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
 	go adc.AirdropAccounts.Sync()
 	shardStatus := make(map[byte]bool)
@@ -66,7 +66,7 @@ func readConfig() {
 		for shard := 0; shard < common.MaxShardNumber; shard++ {
 			if !shardStatus[byte(shard)] {
 				ready = false
-				log.Printf("Shard %v not ready!!\n", shard)
+				logger.Printf("Shard %v not ready!!\n", shard)
 			}
 		}
 		if !ready {
@@ -77,5 +77,5 @@ func readConfig() {
 	}
 	go adc.AirdropAccounts.manageNFTs()
 	go adc.AirdropAccounts.managePRVUTXOs()
-	log.Println("Loaded config successfully!!")
+	logger.Println("Loaded config successfully!!")
 }

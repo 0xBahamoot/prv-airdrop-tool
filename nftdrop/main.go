@@ -24,7 +24,7 @@ func main() {
 	}
 	var err error
 
-	log.Println("initiating airdrop-tool")
+	logger.Println("initiating airdrop-tool")
 	adc.lastUsedADA = 0
 	airdroppedUser, err := LoadUserAirdropInfo()
 	if err != nil {
@@ -105,7 +105,7 @@ func APIReqDrop(c *gin.Context) {
 	adc.userlock.Unlock()
 	err = UpdateUserAirdropInfo(newUserAccount)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 	}
 	go AirdropNFT(newUserAccount)
 	c.JSON(http.StatusOK, gin.H{
@@ -152,14 +152,14 @@ func AirdropNFT(user *UserAccount) {
 
 		airdropAccount, err := adc.AirdropAccounts.GetRandomAirdropAccount(byte(user.ShardID))
 		if err != nil {
-			log.Printf("Choose airdrop account at attempt %v error: %v\n", attempt, err)
+			logger.Printf("Choose airdrop account at attempt %v error: %v\n", attempt, err)
 			attempt++
 			time.Sleep(10 * time.Second)
 			continue
 		}
 		txHash, nftID, err := transferNFT(airdropAccount, user.PaymentAddress)
 		if err != nil {
-			log.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.PublicKey, user.Pubkey, attempt, err)
+			logger.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.PublicKey, user.Pubkey, attempt, err)
 			attempt++
 			time.Sleep(10 * time.Second)
 			continue
@@ -183,8 +183,8 @@ func AirdropNFT(user *UserAccount) {
 	}
 
 	if attempt >= maxAttempts {
-		log.Printf("Cannot transferNFT to account %v: max attempt exceeded\n", user.PaymentAddress)
+		logger.Printf("Cannot transferNFT to account %v: max attempt exceeded\n", user.PaymentAddress)
 	} else {
-		log.Printf("transferNFT to %v FINISHED\n", user.PaymentAddress)
+		logger.Printf("transferNFT to %v FINISHED\n", user.PaymentAddress)
 	}
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	log.Println("This runs before tests!!")
+	logger.Println("This runs before tests!!")
 	var err error
 	incClient, err = incclient.NewTestNetClientWithCache()
 	if err != nil {
@@ -39,12 +39,12 @@ func init() {
 
 	config.Coinservice = "http://api-coinservice-staging2.incognito.org"
 
-	log.Println("Loading accounts...")
+	logger.Println("Loading accounts...")
 	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
+	logger.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
 	go adc.AirdropAccounts.Sync()
 	shardStatus := make(map[byte]bool)
@@ -58,7 +58,7 @@ func init() {
 		for shard := 0; shard < common.MaxShardNumber; shard++ {
 			if !shardStatus[byte(shard)] {
 				ready = false
-				log.Printf("Shard %v not ready!!\n", shard)
+				logger.Printf("Shard %v not ready!!\n", shard)
 			}
 		}
 		if !ready {
@@ -67,11 +67,11 @@ func init() {
 			break
 		}
 	}
-	log.Println("Readyyyy, goooooooooooooo!!!")
+	logger.Println("Readyyyy, goooooooooooooo!!!")
 
 	go adc.AirdropAccounts.manageNFTs()
 	go adc.AirdropAccounts.managePRVUTXOs()
-	log.Println("Loaded config successfully!!")
+	logger.Println("Loaded config successfully!!")
 }
 
 func TestAirDrop(t *testing.T) {
@@ -87,9 +87,9 @@ func TestTransferNFT(t *testing.T) {
 	numTransferred := 1000
 	//myNFTs, err := incClient.GetMyNFTs(defaultReceiver)
 	//if err != nil {
-	//	log.Println(err)
+	//	logger.Println(err)
 	//}
-	//log.Printf("old numNFTs: %v\n", len(myNFTs))
+	//logger.Printf("old numNFTs: %v\n", len(myNFTs))
 
 	doneCount := 0
 	mtx := new(sync.Mutex)
@@ -107,7 +107,7 @@ func TestTransferNFT(t *testing.T) {
 			for attempt < maxAttempts {
 				acc, err := adc.AirdropAccounts.GetRandomAirdropAccount(shardID)
 				if err != nil {
-					log.Printf("%v: attempt: %v, GetRandomAirdropAccount error: %v\n", i, attempt, err)
+					logger.Printf("%v: attempt: %v, GetRandomAirdropAccount error: %v\n", i, attempt, err)
 					time.Sleep(10 * time.Second)
 					attempt++
 					continue
@@ -115,7 +115,7 @@ func TestTransferNFT(t *testing.T) {
 				txHash, nft, err = transferNFT(acc, receiver)
 				if err != nil {
 					if !strings.Contains(err.Error(), "reject") {
-						log.Printf("i: %v, attempt: %v, transferNFT %v error: %v\n", i, attempt, acc.toString(), err)
+						logger.Printf("i: %v, attempt: %v, transferNFT %v error: %v\n", i, attempt, acc.toString(), err)
 					}
 
 					time.Sleep(10 * time.Second)
@@ -125,7 +125,7 @@ func TestTransferNFT(t *testing.T) {
 				mtx.Lock()
 				doneCount++
 				mtx.Unlock()
-				log.Printf("Done i (%v, %v, %v), doneCount %v, acc %v, TxHash %v, nftID %v\n", i, attempt, shardID, doneCount, acc.toString(), txHash, nft)
+				logger.Printf("Done i (%v, %v, %v), doneCount %v, acc %v, TxHash %v, nftID %v\n", i, attempt, shardID, doneCount, acc.toString(), txHash, nft)
 				break
 			}
 			if attempt >=maxAttempts {
@@ -139,13 +139,13 @@ func TestTransferNFT(t *testing.T) {
 	//time.Sleep(100 * time.Second)
 	//myNFTs, err = incClient.GetMyNFTs(defaultReceiver)
 	//if err != nil {
-	//	log.Println(err)
+	//	logger.Println(err)
 	//}
-	//log.Printf("new numNFTs: %v\n", len(myNFTs))
+	//logger.Printf("new numNFTs: %v\n", len(myNFTs))
 	//if len(myNFTs) < numTransferred {
 	//	panic(fmt.Sprintf("expected at least %v NFTs, got %v", numTransferred, len(myNFTs)))
 	//}
-	log.Printf("timeElapsed: %v\n", time.Since(start).Seconds())
+	logger.Printf("timeElapsed: %v\n", time.Since(start).Seconds())
 	select {}
 }
 
@@ -170,7 +170,7 @@ func TestMintNFTMany(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("old numNFTs: %v\n", len(myNFTs))
+	logger.Printf("old numNFTs: %v\n", len(myNFTs))
 
 	mintNFTMany(acc, numRequired - len(myNFTs))
 	time.Sleep(100 * time.Second)
@@ -179,7 +179,7 @@ func TestMintNFTMany(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("new numNFTs: %v\n", len(myNFTs))
+	logger.Printf("new numNFTs: %v\n", len(myNFTs))
 	if len(myNFTs) < numRequired {
 		panic(fmt.Sprintf("expected at least %v NFTs, got %v", numRequired, len(myNFTs)))
 	}
@@ -211,7 +211,7 @@ func TestSplitPRV(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("old numUTXOs: %v\n", len(utxoList))
+	logger.Printf("old numUTXOs: %v\n", len(utxoList))
 
 	err = splitPRV(acc, 100, numRequired - len(utxoList))
 	if err != nil {
@@ -222,7 +222,7 @@ func TestSplitPRV(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("new numUTXOs: %v\n", len(utxoList))
+	logger.Printf("new numUTXOs: %v\n", len(utxoList))
 	if len(utxoList) < numRequired {
 		panic(fmt.Sprintf("expected at least %v UTXOs, got %v", numRequired, len(utxoList)))
 	}

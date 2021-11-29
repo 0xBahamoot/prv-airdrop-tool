@@ -60,7 +60,7 @@ func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneC
 		return err
 	}
 	acc.MarkTempUsed(common.PRVIDStr, coinsToSpend)
-	log.Printf("TransferPRV %v TxHash: %v\n", acc.toString(), txHash)
+	logger.Printf("TransferPRV %v TxHash: %v\n", acc.toString(), txHash)
 
 	waitingCheckTxInBlock(acc, txHash, common.PRVIDStr, coinsToSpend)
 	if doneChan != nil {
@@ -71,7 +71,7 @@ func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneC
 }
 
 func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
-	log.Printf("SPLIT PRV FOR ACCOUNT %v WITH AMOUNT %v, NUM %v\n", acc.toString(), amountForEach, numUTXOs)
+	logger.Printf("SPLIT PRV FOR ACCOUNT %v WITH AMOUNT %v, NUM %v\n", acc.toString(), amountForEach, numUTXOs)
 	if numUTXOs < 0 {
 		return nil
 	}
@@ -83,7 +83,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 	remaining := numUTXOs
 	start := time.Now()
 	for remaining > 0 {
-		log.Printf("splitPRV %v remaining: %v\n", acc.toString(), remaining)
+		logger.Printf("splitPRV %v remaining: %v\n", acc.toString(), remaining)
 		if remaining <= incclient.MaxOutputSize {
 			addrList := make([]string, 0)
 			amountList := make([]uint64, 0)
@@ -94,7 +94,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			err = transferPRV(acc, addrList, amountList, nil, nil)
 			if err != nil {
 				if !strings.Contains(err.Error(), "reject") {
-					log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
+					logger.Printf("transferPRV %v error: %v\n", acc.toString(), err)
 				}
 				time.Sleep(40 * time.Second)
 				continue
@@ -116,7 +116,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			err = transferPRV(acc, addrList, amountList, nil, nil)
 			if err != nil {
 				if !strings.Contains(err.Error(), "reject") {
-					log.Printf("transferPRV %v error: %v\n", acc.toString(), err)
+					logger.Printf("transferPRV %v error: %v\n", acc.toString(), err)
 				}
 
 				time.Sleep(30 * time.Second)
@@ -137,7 +137,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 				go func() {
 					err = transferPRV(acc, addrList, amountList, doneChan, errChan)
 					if err != nil {
-						log.Println(err)
+						logger.Println(err)
 					}
 				}()
 				time.Sleep(1 * time.Second)
@@ -149,19 +149,19 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			for {
 				select {
 				case <-ctx.Done():
-					log.Printf("splitPRV timed-out\n")
+					logger.Printf("splitPRV timed-out\n")
 					return fmt.Errorf("time-out")
 				case err := <-errChan:
 					errCount++
 					if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
-						log.Printf("transferPRV error: %v\n", err)
+						logger.Printf("transferPRV error: %v\n", err)
 					}
 					go func() {
 						time.Sleep(10 * time.Second)
 						err = transferPRV(acc, addrList, amountList, doneChan, errChan)
 						if err != nil {
 							if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
-								log.Println(err)
+								logger.Println(err)
 							}
 						}
 					}()
@@ -177,7 +177,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 						finished = true
 						break
 					}
-					log.Printf("splitPRV %v timeElapsed: %v, remaining: %v/%v, doneCount: %v, errCount: %v\n",
+					logger.Printf("splitPRV %v timeElapsed: %v, remaining: %v/%v, doneCount: %v, errCount: %v\n",
 						acc.toString(), time.Since(start).Seconds(), remaining, numUTXOs, doneCount, errCount)
 					time.Sleep(10 * time.Second)
 				}
@@ -188,12 +188,12 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			}
 		}
 	}
-	log.Printf("FINISHED SPLIT PRV FOR ACCOUNT %v: %v\n", acc.toString(), time.Since(start).Seconds())
+	logger.Printf("FINISHED SPLIT PRV FOR ACCOUNT %v: %v\n", acc.toString(), time.Since(start).Seconds())
 	return nil
 }
 
 func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
-	log.Printf("MINT NEW NFT FOR ACCOUNT %v\n", acc.toString())
+	logger.Printf("MINT NEW NFT FOR ACCOUNT %v\n", acc.toString())
 	if minPRVRequired == 0 {
 		minPRVRequired = incClient.GetMinPRVRequiredToMintNFT(0)
 	}
@@ -224,11 +224,11 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 
 	coinsToSpend, err := acc.ChooseBestUTXOs(common.PRVIDStr, requiredAmount)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		errChan <- err
 		return
 	}
-	//log.Printf("%v CoinToSpendIdx: %v, amount: %v, %v\n",
+	//logger.Printf("%v CoinToSpendIdx: %v, amount: %v, %v\n",
 	//	acc.toString(), coinsToSpend[0].Index, coinsToSpend[0].Coin.GetValue(), time.Since(tmpStart).Seconds())
 
 	coinList := make([]coin.PlainCoin, 0)
@@ -249,14 +249,14 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 		return
 	}
 	acc.MarkTempUsed(common.PRVIDStr, coinsToSpend)
-	log.Printf("MintNFT %v TxHash: %v\n", acc.toString(), txHash)
+	logger.Printf("MintNFT %v TxHash: %v\n", acc.toString(), txHash)
 
 	go waitingCheckTxInBlock(acc, txHash, common.PRVIDStr, coinsToSpend)
 	doneChan <- txHash
 }
 
 func mintNFTMany(acc *AccountInfo, numNFTs int) {
-	log.Printf("MINT %v NFTs FOR ACCOUNT %v\n", numNFTs, acc.toString())
+	logger.Printf("MINT %v NFTs FOR ACCOUNT %v\n", numNFTs, acc.toString())
 	start := time.Now()
 	if numNFTs < 0 {
 		return
@@ -268,12 +268,12 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 	requiredAmount := requiredAmountForEach * uint64(numNFTs)
 	balance := acc.GetBalance(common.PRVIDStr)
 	if balance < requiredAmount {
-		log.Printf("insufficient PRV amount: required %v, got %v\n", requiredAmount, balance)
+		logger.Printf("insufficient PRV amount: required %v, got %v\n", requiredAmount, balance)
 		return
 	}
 	utxoList, err := acc.GetUTXOsByAmount(common.PRVIDStr, requiredAmountForEach)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		return
 	}
 
@@ -281,7 +281,7 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 	if len(utxoList) < numNFTs {
 		err = splitPRV(acc, requiredAmountForEach, numNFTs-len(utxoList))
 		if err != nil {
-			log.Println(err)
+			logger.Println(err)
 			return
 		}
 	}
@@ -303,32 +303,32 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("mintNFT many timed-out\n")
+			logger.Printf("mintNFT many timed-out\n")
 			return
 		case err := <-errChan:
 			errCount++
 			if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
-				log.Printf("mintNFT %v error: %v\n", acc.toString(), err)
+				logger.Printf("mintNFT %v error: %v\n", acc.toString(), err)
 			}
 			go func() {
 				time.Sleep(10 * time.Second)
 				mintNFT(acc, doneChan, errChan)
 			}()
 		case txHash := <-doneChan:
-			log.Printf("new mintNFT txHash: %v\n", txHash)
+			logger.Printf("new mintNFT txHash: %v\n", txHash)
 			doneCount++
 		default:
 			if doneCount == numNFTs {
-				log.Printf("Mint all %v NFTs SUCCEEDED\n\n", numNFTs)
+				logger.Printf("Mint all %v NFTs SUCCEEDED\n\n", numNFTs)
 				finished = true
 				break
 			}
 			if errCount == numNFTs {
-				log.Printf("Mint NFTs FINISHED: done %v, failed %v\n\n", doneCount, errCount)
+				logger.Printf("Mint NFTs FINISHED: done %v, failed %v\n\n", doneCount, errCount)
 				finished = true
 				return
 			}
-			log.Printf("mintNFTMany %v timeElapsed: %v, doneCount: %v/%v, errCount: %v\n",
+			logger.Printf("mintNFTMany %v timeElapsed: %v, doneCount: %v/%v, errCount: %v\n",
 				acc.toString(), time.Since(start).Seconds(), doneCount, numNFTs, errCount)
 			time.Sleep(5 * time.Second)
 		}
@@ -336,7 +336,7 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 			break
 		}
 	}
-	log.Printf("MINT %v NFTs FOR ACCOUNT %v FINISHED: %v!!!\n\n", numNFTs, acc.toString(), time.Since(start).Seconds())
+	logger.Printf("MINT %v NFTs FOR ACCOUNT %v FINISHED: %v!!!\n\n", numNFTs, acc.toString(), time.Since(start).Seconds())
 }
 
 func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error) {
@@ -349,7 +349,7 @@ func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error
 	if err != nil {
 		return "", "", err
 	}
-	//log.Printf("%v PRVCoinToSpendIdx: %v, amount: %v, %v, NFT: %v\n",
+	//logger.Printf("%v PRVCoinToSpendIdx: %v, amount: %v, %v, NFT: %v\n",
 	//	acc.toString(), prvCoinsToSpend[0].Index, prvCoinsToSpend[0].Coin.GetValue(), len(prvCoinsToSpend), nftID)
 	nftCoinToSpend, err := acc.ChooseBestUTXOs(nftID, 1)
 	if err != nil {
@@ -385,7 +385,7 @@ func transferNFT(acc *AccountInfo, paymentAddress string) (string, string, error
 	}
 	acc.MarkTempUsed(common.PRVIDStr, prvCoinsToSpend)
 	acc.MarkTempUsed(nftID, nftCoinToSpend)
-	log.Printf("TransferNFT %v to %v TxHash: %v\n", acc.toString(),
+	logger.Printf("TransferNFT %v to %v TxHash: %v\n", acc.toString(),
 		fmt.Sprintf("%v...%v", paymentAddress[:5], paymentAddress[len(paymentAddress)-5:]), txHash)
 
 	go waitingCheckTxInBlock(acc, txHash, common.PRVIDStr, prvCoinsToSpend)
