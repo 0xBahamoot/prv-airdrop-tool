@@ -40,7 +40,7 @@ func (am *AccountManager) GetAccount(privateKey string) (*AccountInfo, error) {
 func (am *AccountManager) Sync() {
 	for privateKey := range am.Accounts {
 		go am.UpdateAccount(privateKey)
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
