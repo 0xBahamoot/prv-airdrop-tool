@@ -62,7 +62,7 @@ func waitingCheckTxInBlock(acc *AccountInfo, txHash, tokenIDStr string, utxoList
 			if err != nil || !isInBlock {
 				time.Sleep(10 * time.Second)
 			} else {
-				log.Printf("Tx %v is in block\n", txHash)
+				//log.Printf("Tx %v is in block\n", txHash)
 				success = true
 				acc.MarkUsed(tokenIDStr, utxoList)
 				time.Sleep(10 * time.Second)
