@@ -268,12 +268,12 @@ func (account *AccountInfo) Update() {
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			logger.Println("%v: nftTokens loaded: %v\n", len(nftTokens), cloneAccount.toString())
+			logger.Printf("%v: nftTokens loaded: %v\n", len(nftTokens), cloneAccount.toString())
 			if allUTXOs == nil {
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			logger.Println("%v: UTXOs loaded: %v\n", len(allUTXOs), cloneAccount.toString())
+			logger.Printf("%v: UTXOs loaded: %v\n", len(allUTXOs), cloneAccount.toString())
 			finished = true
 			break
 		}
