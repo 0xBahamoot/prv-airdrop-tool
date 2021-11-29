@@ -39,10 +39,10 @@ var adc AirdropController
 
 var (
 	defaultSleepTime = 120 // seconds
-	maxAttempts      = 100
-	numMintBatchNFTs = 200
-	numSplitPRVs     = 200
-	minPRVRequired   = uint64(0)
+	maxAttempts      = 200
+	numMintBatchNFTs = 100
+	numSplitPRVs     = 100
+	minPRVRequired   = uint64(100)
 )
 
 func waitingCheckTxInBlock(acc *AccountInfo, txHash, tokenIDStr string, utxoList []Coin) {
