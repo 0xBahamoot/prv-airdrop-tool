@@ -55,7 +55,7 @@ func init() {
 				shardStatus[acc.ShardID] = true
 			}
 		}
-		for shard := 0; shard < common.MaxShardNumber; shard++ {
+		for shard := 1; shard < common.MaxShardNumber; shard++ {
 			if !shardStatus[byte(shard)] {
 				ready = false
 				logger.Printf("Shard %v not ready!!\n", shard)
