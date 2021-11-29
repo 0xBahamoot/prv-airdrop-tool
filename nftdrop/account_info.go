@@ -228,6 +228,9 @@ func (account AccountInfo) GetUTXOsByAmount(tokenID string, amount uint64) ([]Co
 func (account *AccountInfo) Update() {
 	var err error
 	defer func() {
+		if err != nil {
+			logger.Printf("%v: Update error: %v\n", err)
+		}
 		account.updateAvailableStatus(err == nil)
 	}()
 	accName := account.toString()
@@ -237,14 +240,12 @@ func (account *AccountInfo) Update() {
 	tokenInfoList := make(map[string]*TokenInfo, 0)
 	nftTokens, err := incClient.GetListNftIDs(0)
 	if err != nil {
-		logger.Printf("%v: GetListNftIDs error: %v\n", accName, err)
 		return
 	}
 	cloneAccount := account.clone()
 
 	allUTXOs, allIndices, err := incClient.GetAllUTXOsV2(cloneAccount.PrivateKey)
 	if err != nil {
-		logger.Printf("%v: GetAllUTXOsV2 error: %v\n", accName, err)
 		return
 	}
 	nftCount := 0
