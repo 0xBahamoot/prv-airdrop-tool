@@ -6,7 +6,6 @@ import (
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
-	"log"
 	"sort"
 	"sync"
 	"time"

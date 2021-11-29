@@ -8,7 +8,6 @@ import (
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	metadataPdexv3 "github.com/incognitochain/go-incognito-sdk-v2/metadata/pdexv3"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
-	"log"
 	"math"
 	"strings"
 	"time"
@@ -102,7 +101,7 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 			remaining = 0
 		} else {
 			tmpNumUTXOs := remaining
-			if tmpNumUTXOs > incclient.MaxOutputSize * incclient.MaxOutputSize {
+			if tmpNumUTXOs > incclient.MaxOutputSize*incclient.MaxOutputSize {
 				tmpNumUTXOs = incclient.MaxOutputSize * incclient.MaxOutputSize
 			}
 			numTxs := int(math.Ceil(float64(tmpNumUTXOs) / float64(incclient.MaxOutputSize)))
