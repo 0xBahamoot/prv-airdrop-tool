@@ -80,7 +80,7 @@ func TestTransferNFT(t *testing.T) {
 	defaultReceiver := "1111111U1tofCB5sj3oKYgHbr6PXGtub7WTdKN2KcUdACTBN9GH5RYoAAYmeTgF6F6cfZ6HvYjSMiWWhfkLeGXD4Kw5auCFUqnaGrso7Eg"
 	defaultReceiverAddr := incclient.PrivateKeyToPaymentAddress(defaultReceiver, -1)
 
-	numTransferred := 800
+	numTransferred := 1000
 	//myNFTs, err := incClient.GetMyNFTs(defaultReceiver)
 	//if err != nil {
 	//	log.Println(err)
