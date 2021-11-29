@@ -268,10 +268,12 @@ func (account *AccountInfo) Update() {
 				time.Sleep(2 * time.Second)
 				continue
 			}
+			logger.Println("%v: nftTokens loaded: %v\n", len(nftTokens), cloneAccount.toString())
 			if allUTXOs == nil {
 				time.Sleep(2 * time.Second)
 				continue
 			}
+			logger.Println("%v: UTXOs loaded: %v\n", len(allUTXOs), cloneAccount.toString())
 			finished = true
 			break
 		}
@@ -279,7 +281,7 @@ func (account *AccountInfo) Update() {
 			break
 		}
 	}
-	
+
 	nftCount := 0
 	for tokenID, utxoList := range allUTXOs {
 		if tokenID == common.ConfidentialAssetID.String() {
