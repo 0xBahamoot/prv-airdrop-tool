@@ -229,7 +229,7 @@ func (account *AccountInfo) Update() {
 	var err error
 	defer func() {
 		if err != nil {
-			logger.Printf("%v: Update error: %v\n", err)
+			logger.Printf("%v: Update error: %v\n", account.toString(), err)
 		}
 		account.updateAvailableStatus(err == nil)
 	}()
