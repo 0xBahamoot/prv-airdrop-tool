@@ -79,10 +79,11 @@ func (am *AccountManager) GetBalance(privateKey, tokenID string) (uint64, error)
 	return balance, nil
 }
 
-// GetRandomAccount returns a random account for a given shard.
-func (am *AccountManager) GetRandomAccount(shardID byte) (*AccountInfo, error) {
+// GetRandomAirdropAccount returns a random airdrop account for a given shard.
+func (am *AccountManager) GetRandomAirdropAccount(shardID byte) (*AccountInfo, error) {
 	for _, acc := range am.Accounts {
-		if acc.isAvailable() { // skip if account not ready
+		nftList, _ := acc.GetMyNFTs()
+		if acc.isAvailable() && !acc.isMinting && len(nftList) > 0 { // skip if account not ready
 			if shardID >= byte(common.MaxShardNumber) {
 				return acc, nil
 			}
@@ -90,6 +91,9 @@ func (am *AccountManager) GetRandomAccount(shardID byte) (*AccountInfo, error) {
 				return acc, nil
 			}
 		}
+	}
+	if shardID < byte(common.MaxShardNumber) {
+		return am.GetRandomAirdropAccount(255)
 	}
 	return nil, fmt.Errorf("no account found for shard %v", shardID)
 }

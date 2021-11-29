@@ -150,7 +150,7 @@ func AirdropNFT(user *UserAccount) {
 		user.LastAirdropRequest = time.Now()
 		adc.userlock.Unlock()
 
-		airdropAccount, err := adc.AirdropAccounts.GetRandomAccount(byte(user.ShardID))
+		airdropAccount, err := adc.AirdropAccounts.GetRandomAirdropAccount(byte(user.ShardID))
 		if err != nil {
 			log.Printf("Choose airdrop account at attempt %v error: %v\n", attempt, err)
 			attempt++

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
+	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
 	"log"
 	"strings"
 	"sync"
@@ -14,7 +15,7 @@ import (
 func init() {
 	log.Println("This runs before tests!!")
 	var err error
-	incClient, err = incclient.NewTestNetClientWithCache()
+	incClient, err = incclient.NewIncClientWithCache("http://198.54.113.106:9334", "", 2, "testnet")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,6 +47,7 @@ func init() {
 	log.Printf("Loaded accounts: %v\n", len(adc.AirdropAccounts.Accounts))
 
 	go adc.AirdropAccounts.Sync()
+	log.Println("Waiting for accounts to sync...")
 	for {
 		ready := false
 		for _, acc := range adc.AirdropAccounts.Accounts {
@@ -61,6 +63,7 @@ func init() {
 			break
 		}
 	}
+	log.Println("Readyyyy, goooooooooooooo!!!")
 
 	go adc.AirdropAccounts.manageNFTs()
 	go adc.AirdropAccounts.managePRVUTXOs()
@@ -74,33 +77,38 @@ func TestAirDrop(t *testing.T) {
 }
 
 func TestTransferNFT(t *testing.T) {
-	receiver := "1111111U1tofCB5sj3oKYgHbr6PXGtub7WTdKN2KcUdACTBN9GH5RYoAAYmeTgF6F6cfZ6HvYjSMiWWhfkLeGXD4Kw5auCFUqnaGrso7Eg"
-	receiverAddr := incclient.PrivateKeyToPaymentAddress(receiver, -1)
+	defaultReceiver := "1111111U1tofCB5sj3oKYgHbr6PXGtub7WTdKN2KcUdACTBN9GH5RYoAAYmeTgF6F6cfZ6HvYjSMiWWhfkLeGXD4Kw5auCFUqnaGrso7Eg"
+	defaultReceiverAddr := incclient.PrivateKeyToPaymentAddress(defaultReceiver, -1)
 
 	numTransferred := 800
-	myNFTs, err := incClient.GetMyNFTs(receiver)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Printf("old numNFTs: %v\n", len(myNFTs))
+	//myNFTs, err := incClient.GetMyNFTs(defaultReceiver)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//log.Printf("old numNFTs: %v\n", len(myNFTs))
 
-	time.Sleep(2 * time.Minute)
 	doneCount := 0
 	mtx := new(sync.Mutex)
 	start := time.Now()
 	for i := 0; i < numTransferred; i++ {
 		go func(i int) {
+			receiver := defaultReceiverAddr
+			w, _ := wallet.GenRandomWalletForShardID(byte(common.RandInt() % common.MaxShardNumber))
+			if w != nil {
+				receiver = w.Base58CheckSerialize(wallet.PaymentAddressType)
+			}
+			shardID, _ := incclient.GetShardIDFromPaymentAddress(receiver)
 			var txHash, nft string
 			attempt := 0
 			for attempt < maxAttempts {
-				acc, err := adc.AirdropAccounts.GetRandomAccount(255)
+				acc, err := adc.AirdropAccounts.GetRandomAirdropAccount(shardID)
 				if err != nil {
-					log.Printf("%v: attempt: %v, GetRandomAccount error: %v\n", i, attempt, err)
+					log.Printf("%v: attempt: %v, GetRandomAirdropAccount error: %v\n", i, attempt, err)
 					time.Sleep(10 * time.Second)
 					attempt++
 					continue
 				}
-				txHash, nft, err = transferNFT(acc, receiverAddr)
+				txHash, nft, err = transferNFT(acc, receiver)
 				if err != nil {
 					if !strings.Contains(err.Error(), "reject") {
 						log.Printf("i: %v, attempt: %v, transferNFT %v error: %v\n", i, attempt, acc.toString(), err)
@@ -113,26 +121,26 @@ func TestTransferNFT(t *testing.T) {
 				mtx.Lock()
 				doneCount++
 				mtx.Unlock()
-				log.Printf("Done i (%v, %v), doneCount %v, acc %v, TxHash %v, nftID %v\n", i, attempt, doneCount, acc.toString(), txHash, nft)
+				log.Printf("Done i (%v, %v, %v), doneCount %v, acc %v, TxHash %v, nftID %v\n", i, attempt, shardID, doneCount, acc.toString(), txHash, nft)
 				break
 			}
 			if attempt >=maxAttempts {
 				panic(fmt.Sprintf("%v FAILED!!!", i))
 			}
 		}(i)
-		sleep := 1 + common.RandInt() % 5
-		time.Sleep(time.Duration(sleep) * time.Second)
+		sleep := 100 + common.RandInt() % 2000
+		time.Sleep(time.Duration(sleep) * time.Millisecond)
 	}
 
-	time.Sleep(100 * time.Second)
-	myNFTs, err = incClient.GetMyNFTs(receiver)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Printf("new numNFTs: %v\n", len(myNFTs))
-	if len(myNFTs) < numTransferred {
-		panic(fmt.Sprintf("expected at least %v NFTs, got %v", numTransferred, len(myNFTs)))
-	}
+	//time.Sleep(100 * time.Second)
+	//myNFTs, err = incClient.GetMyNFTs(defaultReceiver)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//log.Printf("new numNFTs: %v\n", len(myNFTs))
+	//if len(myNFTs) < numTransferred {
+	//	panic(fmt.Sprintf("expected at least %v NFTs, got %v", numTransferred, len(myNFTs)))
+	//}
 	log.Printf("timeElapsed: %v\n", time.Since(start).Seconds())
 	select {}
 }
