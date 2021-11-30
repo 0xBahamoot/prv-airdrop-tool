@@ -250,7 +250,6 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 		return
 	}
 	acc.MarkTempUsed(common.PRVIDStr, coinsToSpend)
-	logger.Printf("MintNFT %v TxHash: %v\n", acc.toString(), txHash)
 
 	go waitingCheckTxInBlock(acc, txHash, common.PRVIDStr, coinsToSpend)
 	doneChan <- txHash
@@ -316,7 +315,7 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 				mintNFT(acc, doneChan, errChan)
 			}()
 		case txHash := <-doneChan:
-			logger.Printf("new mintNFT txHash: %v\n", txHash)
+			logger.Printf("new mintNFT txHash for %v: %v\n", acc.toString(), txHash)
 			doneCount++
 		default:
 			if doneCount == numNFTs {
