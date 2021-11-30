@@ -89,6 +89,7 @@ func APIReqDrop(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
+	logger.Printf("User %v already had an NFT\n", paymentkey)
 	if existNFT {
 		adc.userlock.Unlock()
 		c.JSON(http.StatusOK, gin.H{
