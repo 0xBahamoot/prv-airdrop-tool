@@ -33,6 +33,7 @@ func readConfig() {
 			panic(err)
 		}
 	}
+	incclient.MaxGetCoinThreads = 2
 
 	incClient, err = incclient.NewIncClientWithCache(config.Fullnode, "", 2)
 	if err != nil {
