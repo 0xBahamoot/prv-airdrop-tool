@@ -136,7 +136,9 @@ func splitPRV(acc *AccountInfo, amountForEach uint64, numUTXOs int) error {
 				go func() {
 					err = transferPRV(acc, addrList, amountList, doneChan, errChan)
 					if err != nil {
-						logger.Println(err)
+						if !strings.Contains(err.Error(), "double spend") && !strings.Contains(err.Error(), "replacement or cancel") {
+							logger.Printf("transferPRV %v error: %v\n", acc.toString(), err)
+						}
 					}
 				}()
 				time.Sleep(1 * time.Second)
