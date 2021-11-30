@@ -113,7 +113,7 @@ func (am *AccountManager) manageNFTs() {
 				continue
 			}
 			logger.Printf("[manageNFTs] Account %v, isMinting %v, #NFTs %v\n", acc.toString(), acc.isMinting, len(myNFTs))
-			if len(myNFTs) < 20 && !acc.isMinting && !acc.isSplitting { // avoid multiple minting
+			if len(myNFTs) < thresholdTriggerMint && !acc.isMinting && !acc.isSplitting { // avoid multiple minting
 				go func(acc *AccountInfo) {
 					acc.updateMintingStatus(true)
 					logger.Printf("Minting NFTs for account %v, numNFTs %v\n", acc.toString(), len(myNFTs))
@@ -141,7 +141,7 @@ func (am *AccountManager) managePRVUTXOs() {
 				continue
 			}
 			logger.Printf("[managePRVUTXOs] Account %v, isSplitting %v, #UTXOs %v\n", acc.toString(), acc.isSplitting, len(utxoList))
-			if len(utxoList) < 20 && !acc.isSplitting {
+			if len(utxoList) < thresholdTriggerSplit && !acc.isSplitting {
 				go func(acc *AccountInfo) {
 					acc.updateSplittingStatus(true)
 					logger.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))

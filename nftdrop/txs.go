@@ -293,7 +293,7 @@ func mintNFTMany(acc *AccountInfo, numNFTs int) {
 
 	for i := 0; i < numNFTs; i++ {
 		go mintNFT(acc, doneChan, errChan)
-		time.Sleep(1 * time.Second)
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	errCount := 0

@@ -38,11 +38,13 @@ type AirdropController struct {
 var adc AirdropController
 
 var (
-	defaultSleepTime = 60 // seconds
-	maxAttempts      = 200
-	numMintBatchNFTs = 100
-	numSplitPRVs     = 200
-	minPRVRequired   = uint64(100)
+	defaultSleepTime      = 60 // seconds
+	maxAttempts           = 200
+	numMintBatchNFTs      = 150
+	numSplitPRVs          = 300
+	thresholdTriggerMint  = 20
+	thresholdTriggerSplit = 20
+	minPRVRequired        = uint64(100)
 )
 
 func waitingCheckTxInBlock(acc *AccountInfo, txHash, tokenIDStr string, utxoList []Coin) {

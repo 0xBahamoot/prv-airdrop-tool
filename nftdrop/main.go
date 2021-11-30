@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -142,6 +143,7 @@ func checkUserHaveNFT(paymentAddress string) (bool, error) {
 }
 
 func AirdropNFT(user *UserAccount) {
+	logger.Printf("New Airdrop request from %v, shard %v\n", user.Pubkey, user.ShardID)
 	txsToWatch := make([]string, 0)
 	attempt := 0
 	for attempt < maxAttempts {
@@ -158,7 +160,9 @@ func AirdropNFT(user *UserAccount) {
 		}
 		txHash, nftID, err := transferNFT(airdropAccount, user.PaymentAddress)
 		if err != nil {
-			logger.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.toString(), user.Pubkey, attempt, err)
+			if !strings.Contains(err.Error(), "reject") && !strings.Contains(err.Error(), "Reject") {
+				logger.Printf("transferNFT from %v to %v(%v) at attempt %v error: %v\n", airdropAccount.toString(), user.Pubkey, user.ShardID, attempt, err)
+			}
 			attempt++
 			time.Sleep(10 * time.Second)
 			continue
