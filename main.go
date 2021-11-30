@@ -133,6 +133,15 @@ func APIReqDrop(c *gin.Context) {
 				"Error":  err,
 			})
 		}
+		if wl.KeySet.PaymentAddress.GetOTAPublicKey() == nil ||
+			wl.KeySet.PaymentAddress.GetPublicSpend() == nil ||
+			wl.KeySet.PaymentAddress.GetPublicView() == nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": 0,
+				"Error":  fmt.Errorf("invalid payment address"),
+			})
+		}
+
 		shardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
 		key = base58.Base58Check{}.Encode(wl.KeySet.PaymentAddress.Pk, 0)
 	}
