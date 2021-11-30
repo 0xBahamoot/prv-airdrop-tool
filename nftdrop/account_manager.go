@@ -82,7 +82,7 @@ func (am *AccountManager) GetBalance(privateKey, tokenID string) (uint64, error)
 func (am *AccountManager) GetRandomAirdropAccount(shardID byte) (*AccountInfo, error) {
 	for _, acc := range am.Accounts {
 		nftList, _ := acc.GetMyNFTs()
-		if acc.isAvailable() && && !acc.isMinting && len(nftList) > 0 { // skip if account not ready
+		if acc.isAvailable() && !acc.isMinting && len(nftList) > 0 { // skip if account not ready
 			utxoList, _ := acc.GetListUnspentOutput(common.PRVIDStr)
 			if len(utxoList) == 0 {
 				continue
