@@ -85,12 +85,14 @@ func APIReqDrop(c *gin.Context) {
 		})
 		return
 	}
+	start := time.Now()
 	existNFT, err := checkUserHaveNFT(paymentkey)
 	if err != nil {
 		panic(err)
 	}
-	logger.Printf("User %v already had an NFT\n", paymentkey)
+	logger.Printf("checkUserHaveNFT timeElapsed: %v\n", time.Since(start).Seconds())
 	if existNFT {
+		logger.Printf("User %v already had an NFT\n", paymentkey)
 		adc.userlock.Unlock()
 		c.JSON(http.StatusOK, gin.H{
 			"Result": -1,
@@ -144,7 +146,7 @@ func checkUserHaveNFT(paymentAddress string) (bool, error) {
 }
 
 func AirdropNFT(user *UserAccount) {
-	logger.Printf("New Airdrop request from %v, shard %v\n", user.Pubkey, user.ShardID)
+	logger.Printf("New Airdrop request from %v, shard %v\n", user.PaymentAddress, user.ShardID)
 	txsToWatch := make([]string, 0)
 	attempt := 0
 	for attempt < maxAttempts {
