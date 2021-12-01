@@ -21,6 +21,10 @@ type UserAccount struct {
 	AirdropSuccess     bool
 }
 
+func (ua UserAccount) toString() string {
+	return fmt.Sprintf("%v(%v)", ua.PaymentAddress[len(ua.PaymentAddress)-10:], ua.ShardID)
+}
+
 type AirdropTxDetail struct {
 	TxHash  string
 	NFTused string
@@ -40,8 +44,8 @@ var adc AirdropController
 var (
 	defaultSleepTime      = 60 // seconds
 	maxAttempts           = 200
-	numMintBatchNFTs      = 150
-	numSplitPRVs          = 300
+	numMintBatchNFTs      = 100
+	numSplitPRVs          = 200
 	thresholdTriggerMint  = 20
 	thresholdTriggerSplit = 20
 	minPRVRequired        = uint64(100)

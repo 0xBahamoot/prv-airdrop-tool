@@ -146,7 +146,7 @@ func checkUserHaveNFT(paymentAddress string) (bool, error) {
 }
 
 func AirdropNFT(user *UserAccount) {
-	logger.Printf("New Airdrop request from %v, shard %v\n", user.PaymentAddress, user.ShardID)
+	logger.Printf("New Airdrop request from %v\n", user.toString())
 	txsToWatch := make([]string, 0)
 	attempt := 0
 	for attempt < maxAttempts {
@@ -164,7 +164,7 @@ func AirdropNFT(user *UserAccount) {
 		txHash, nftID, err := transferNFT(airdropAccount, user.PaymentAddress)
 		if err != nil {
 			if !strings.Contains(err.Error(), "reject") && !strings.Contains(err.Error(), "Reject") {
-				logger.Printf("transferNFT from %v to %v(%v) at attempt %v error: %v\n", airdropAccount.toString(), user.Pubkey, user.ShardID, attempt, err)
+				logger.Printf("transferNFT from %v to %v at attempt %v error: %v\n", airdropAccount.toString(), user.toString(), attempt, err)
 			}
 			attempt++
 			time.Sleep(10 * time.Second)
@@ -183,14 +183,14 @@ func AirdropNFT(user *UserAccount) {
 		user.OngoingTxs = txsToWatch
 		adc.userlock.Unlock()
 
-		ctx, _ := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, _ := context.WithTimeout(context.Background(), 30*time.Minute)
 		watchUserAirdropStatus(user, ctx)
 		break
 	}
 
 	if attempt >= maxAttempts {
-		logger.Printf("Cannot transferNFT to account %v: max attempt exceeded\n", user.PaymentAddress)
+		logger.Printf("Cannot transferNFT to account %v: max attempt exceeded\n", user.toString())
 	} else {
-		logger.Printf("transferNFT to %v FINISHED\n", user.PaymentAddress)
+		logger.Printf("transferNFT to %v FINISHED\n", user.toString())
 	}
 }

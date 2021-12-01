@@ -2,18 +2,27 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"io/ioutil"
 	"log"
+	"os"
 	"time"
 )
 
 type Config struct {
-	Port        int
-	Coinservice string
-	Fullnode    string
-	AirdropKeys []AirdropKey
+	NumMintBatchNFTs      int
+	NumSplitPRVs          int
+	ThresholdTriggerMint  int
+	ThresholdTriggerSplit int
+	MaxGetCoinThreads     int
+	EnableSDKLog          bool
+	SDKLog                string
+	Port                  int
+	Coinservice           string
+	Fullnode              string
+	AirdropKeys           []AirdropKey
 }
 type AirdropKey struct {
 	PrivateKey string
@@ -33,7 +42,34 @@ func readConfig() {
 			panic(err)
 		}
 	}
-	incclient.MaxGetCoinThreads = 2
+	if config.NumMintBatchNFTs != 0 {
+		numMintBatchNFTs = config.NumMintBatchNFTs
+	}
+	if config.NumSplitPRVs != 0 {
+		numSplitPRVs = config.NumSplitPRVs
+	}
+	if config.ThresholdTriggerMint != 0 {
+		thresholdTriggerMint = config.ThresholdTriggerMint
+	}
+	if config.ThresholdTriggerSplit != 0 {
+		thresholdTriggerSplit = config.ThresholdTriggerSplit
+	}
+	if config.MaxGetCoinThreads != 0 {
+		incclient.MaxGetCoinThreads = config.MaxGetCoinThreads
+	} else {
+		incclient.MaxGetCoinThreads = 2
+	}
+	if config.EnableSDKLog {
+		incclient.Logger.IsEnable = config.EnableSDKLog
+	}
+	if config.SDKLog != "" {
+		writer, err := os.OpenFile(config.SDKLog, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			os.Exit(1)
+		}
+		incclient.Logger.Log = log.New(writer, "", log.Ldate|log.Ltime)
+	}
 
 	incClient, err = incclient.NewIncClientWithCache(config.Fullnode, "", 2)
 	if err != nil {
