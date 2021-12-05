@@ -3,6 +3,7 @@ package main
 import (
 	"compress/gzip"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -20,7 +21,7 @@ func readRespBody(resp *http.Response) ([]byte, error) {
 		reader = resp.Body
 	}
 
-	body, err := io.ReadAll(reader)
+	body, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
