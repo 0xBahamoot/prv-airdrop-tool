@@ -45,7 +45,10 @@ func main() {
 
 	r.GET("/requestdrop-nft", APIReqDrop)
 
-	r.Run("0.0.0.0:" + strconv.Itoa(config.Port))
+	err = r.Run("0.0.0.0:" + strconv.Itoa(config.Port))
+	if err != nil {
+		panic(err)
+	}
 	select {}
 }
 
@@ -88,7 +91,9 @@ func APIReqDrop(c *gin.Context) {
 	start := time.Now()
 	existNFT, err := checkUserHaveNFT(paymentkey)
 	if err != nil {
-		panic(err)
+		logger.Printf("checkUserHaveNFT error: %v\n", err)
+		adc.userlock.Unlock()
+		return
 	}
 	logger.Printf("checkUserHaveNFT timeElapsed: %v\n", time.Since(start).Seconds())
 	if existNFT {
