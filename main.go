@@ -98,7 +98,7 @@ func main() {
 		panic(err)
 	}
 	for _, v := range airdroppedUser {
-		adc.UserAccounts[v.PaymentAddress] = v
+		adc.UserAccounts[v.Pubkey] = v
 		if len(v.OngoingTxs) != 0 {
 			ctx, _ := context.WithTimeout(context.Background(), 35*time.Minute)
 			go watchUserAirdropStatus(v, ctx)
@@ -122,7 +122,6 @@ func APIReqDrop(c *gin.Context) {
 		})
 		return
 	}
-	adc.userlock.RLock()
 	key := pubkey
 	shardID := 0
 	if paymentkey != "" {
@@ -155,8 +154,10 @@ func APIReqDrop(c *gin.Context) {
 		}
 		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
 	}
-	if user, ok := adc.UserAccounts[key]; ok {
-		adc.userlock.RUnlock()
+	adc.userlock.RLock()
+	user, ok := adc.UserAccounts[key]
+	adc.userlock.RUnlock()
+	if ok {
 		_ = user
 		t := time.Unix(user.LastAirdropRequest, 0)
 		// if time.Since(t) < 30*time.Minute {
@@ -178,7 +179,6 @@ func APIReqDrop(c *gin.Context) {
 		})
 		return
 	}
-	adc.userlock.RUnlock()
 
 	newUserAccount := new(UserAccount)
 	newUserAccount.PaymentAddress = paymentkey
@@ -186,7 +186,7 @@ func APIReqDrop(c *gin.Context) {
 	newUserAccount.ShardID = shardID
 	newUserAccount.Txs = make(map[string]*AirdropTxDetail)
 	adc.userlock.Lock()
-	adc.UserAccounts[pubkey] = newUserAccount
+	adc.UserAccounts[key] = newUserAccount
 	adc.userlock.Unlock()
 	shield := false
 	if forShield == "true" {
