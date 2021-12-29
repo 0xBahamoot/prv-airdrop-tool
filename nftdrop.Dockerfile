@@ -17,4 +17,4 @@ WORKDIR /app
 
 COPY --from=build /app/nftdrop/nftdrop-service /app/nftdrop-service
 
-CMD [ "./airdrop-service" ]
+CMD [ "./nftdrop-service" ]
