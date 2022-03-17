@@ -89,7 +89,7 @@ func main() {
 	for _, key := range otaKeyList {
 		err := incClient.SubmitKey(key)
 		if err != nil {
-			panic(err)
+			log.Printf("SubmitKey %v encoutered an error: %v\n", key, err)
 		}
 	}
 	adc.lastUsedADA = 0
