@@ -343,6 +343,8 @@ github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211119042747-3f2df
 github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211119042747-3f2dfc0dfb96/go.mod h1:0XlkZq9f+RuBMr9uCiYHJjVHQY0/cbRddnbaLC11Djc=
 github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211130113402-d29d00e4d722 h1:LWT0xyBZj3plXKVRAZ2O0RQon2r2h5w986bI36gbpN8=
 github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20211130113402-d29d00e4d722/go.mod h1:0XlkZq9f+RuBMr9uCiYHJjVHQY0/cbRddnbaLC11Djc=
+github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20220622114107-4942574dbe0c h1:WS6rEd+zYURe4xiprTkdWXkbQH4g9GfaGf7HeG/hpRU=
+github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20220622114107-4942574dbe0c/go.mod h1:0XlkZq9f+RuBMr9uCiYHJjVHQY0/cbRddnbaLC11Djc=
 github.com/incognitochain/go-libp2p-grpc v0.0.0-20181024123959-d1f24bf49b50 h1:+OZyF0LeA+XFjSUH5cDwwtEV9+niTQhjUF+xus1aFgw=
 github.com/incognitochain/go-libp2p-grpc v0.0.0-20181024123959-d1f24bf49b50/go.mod h1:5riooInEdamsXRruHSbk5aScSOFvreGwiYCdLOPOETY=
 github.com/incognitochain/go-libp2p-pubsub v0.2.7-0.20210126072501-9870234752e4 h1:OUGl26tgtimTN+oxaNe6iP6WCdiw4dQfAzQ0wvmW4Do=
