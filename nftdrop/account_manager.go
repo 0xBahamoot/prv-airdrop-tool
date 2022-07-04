@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
-	"time"
+	"github.com/incognitochain/incognito-chain/wallet"
 )
 
 // AccountManager implements a simple management tool for manipulating with Incognito accounts (i.e, privateKey).
@@ -52,6 +55,14 @@ func (am *AccountManager) UpdateAccount(privateKey string) {
 		return
 	}
 
+	wl, err := wallet.Base58CheckDeserialize(privateKey)
+	if err != nil {
+		panic(err)
+	}
+	incClient.SubmitKey(wl.Base58CheckSerialize(wallet.OTAKeyType))
+	if err != nil {
+		log.Printf("SubmitKey %v encoutered an error: %v\n", privateKey, err)
+	}
 	for {
 		account.Update()
 		time.Sleep(60 * time.Second)
@@ -145,7 +156,7 @@ func (am *AccountManager) managePRVUTXOs() {
 				go func(acc *AccountInfo) {
 					acc.updateSplittingStatus(true)
 					logger.Printf("Splitting PRV for account %v, numFeeUTXOs %v\n", acc.toString(), len(utxoList))
-					err = splitPRV(acc, 2 * incclient.DefaultPRVFee, numSplitPRVs)
+					err = splitPRV(acc, 2*incclient.DefaultPRVFee, numSplitPRVs)
 					if err != nil {
 						logger.Printf("splitPRV for account %v error: %v\n", acc.toString(), err)
 					} else {

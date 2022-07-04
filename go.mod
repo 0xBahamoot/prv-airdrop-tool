@@ -8,7 +8,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/incognitochain/coin-service v1.0.1-0.20211119085356-47cbd5348574
 	github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20220622114107-4942574dbe0c
-	github.com/incognitochain/incognito-chain v0.0.0-20211120025349-ceac8b55bcd3 // indirect
+	github.com/incognitochain/incognito-chain v0.0.0-20211120025349-ceac8b55bcd3
 	github.com/kamva/mgm/v3 v3.1.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

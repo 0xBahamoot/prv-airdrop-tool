@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/incognitochain/go-incognito-sdk-v2/common"
-	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"io/ioutil"
 	"log"
 	"os"
 	"time"
+
+	"github.com/incognitochain/go-incognito-sdk-v2/common"
+	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 )
 
 type Config struct {
@@ -71,7 +72,7 @@ func readConfig() {
 		incclient.Logger.Log = log.New(writer, "", log.Ldate|log.Ltime)
 	}
 
-	incClient, err = incclient.NewIncClientWithCache(config.Fullnode, "", 2)
+	incClient, err = incclient.NewIncClient(config.Fullnode, "", 2)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,11 +81,6 @@ func readConfig() {
 	for _, key := range config.AirdropKeys {
 		privateKeys = append(privateKeys, key.PrivateKey)
 	}
-	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
-	if err != nil {
-		panic(err)
-	}
-	logger.Println("Loading accounts...")
 	adc.AirdropAccounts, err = NewAccountManager(privateKeys)
 	if err != nil {
 		panic(err)
