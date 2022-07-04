@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/incognitochain/go-incognito-sdk-v2/coin"
-	"github.com/incognitochain/go-incognito-sdk-v2/common"
-	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
-	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	"math/big"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/incognitochain/go-incognito-sdk-v2/coin"
+	"github.com/incognitochain/go-incognito-sdk-v2/common"
+	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
+	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 )
 
 // Coin combines a PlainCoin and its index.
@@ -255,7 +256,7 @@ func (account *AccountInfo) Update() {
 	var allIndices map[string][]*big.Int
 
 	go func() {
-		nftTokens, err = incClient.GetListNftIDs(0)
+		nftTokens, err = getNFTList()
 		if err != nil {
 			return
 		}
