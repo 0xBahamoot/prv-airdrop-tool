@@ -18,13 +18,13 @@ import (
 )
 
 func main() {
+	cachedb = cache.New(5*time.Minute, 5*time.Minute)
 	adc.UserAccounts = make(map[string]*UserAccount)
 	readConfig()
 	if err := initDB(); err != nil {
 		panic(err)
 	}
 	var err error
-	cachedb = cache.New(5*time.Minute, 5*time.Minute)
 	logger.Println("initiating airdrop-tool")
 	adc.lastUsedADA = 0
 	airdroppedUser, err := LoadUserAirdropInfo()
