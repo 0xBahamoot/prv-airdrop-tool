@@ -13,6 +13,7 @@ import (
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/common/base58"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 )
 
@@ -23,7 +24,7 @@ func main() {
 		panic(err)
 	}
 	var err error
-
+	cachedb = cache.New(5*time.Minute, 5*time.Minute)
 	logger.Println("initiating airdrop-tool")
 	adc.lastUsedADA = 0
 	airdroppedUser, err := LoadUserAirdropInfo()
