@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/incognitochain/go-incognito-sdk-v2/coin"
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/incclient"
 	metadataPdexv3 "github.com/incognitochain/go-incognito-sdk-v2/metadata/pdexv3"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
-	"math"
-	"strings"
-	"time"
 )
 
 func transferPRV(acc *AccountInfo, addrList []string, amountList []uint64, doneChan chan string, errChan chan error) error {
@@ -216,7 +217,7 @@ func mintNFT(acc *AccountInfo, doneChan chan string, errChan chan error) {
 		errChan <- err
 		return
 	}
-	otaReceiveStr, err := otaReceiver.String()
+	otaReceiveStr := otaReceiver.String()
 	if minPRVRequired == 0 {
 		minPRVRequired = incClient.GetMinPRVRequiredToMintNFT(0)
 	}

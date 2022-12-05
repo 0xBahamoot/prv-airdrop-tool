@@ -253,7 +253,6 @@ func AirdropUser(user *UserAccount, forShield bool) {
 	} else {
 		totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
 		totalPRVCoinsNeeded = len(user.TotalTokens) * 2
-
 	}
 
 	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)
