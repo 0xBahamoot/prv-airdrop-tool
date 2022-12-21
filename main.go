@@ -106,7 +106,7 @@ func main() {
 	}
 	r := gin.Default()
 
-	r.GET("/requestdrop", APIReqDrop)
+	r.POST("/requestdrop", APIReqDrop)
 
 	r.Run("0.0.0.0:" + strconv.Itoa(config.Port))
 	select {}
