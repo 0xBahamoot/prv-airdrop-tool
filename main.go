@@ -112,10 +112,20 @@ func main() {
 	select {}
 }
 
+type RequestAirdrop struct {
+	PaymentAddress string `json:"paymentaddress"`
+}
+
 func APIReqDrop(c *gin.Context) {
-	paymentkey := c.Query("paymentkey")
-	pubkey := c.Query("pubkey")
-	forShield := c.Query("shield")
+	var req RequestAirdrop
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+		return
+	}
+	paymentkey := req.PaymentAddress
+	pubkey := ""
+	forShield := "true"
 	if paymentkey == "" && pubkey == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"Result": -1,
