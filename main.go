@@ -273,7 +273,7 @@ func AirdropUser(user *UserAccount, forShield bool) {
 	txsToSend := [][]byte{}
 	for i := 0; i < totalTxNeeded; i++ {
 		if i+1 == totalTxNeeded {
-			txDetail, txBytes, txHash, err := CreateAirDropTx(airdropAccount, user.PaymentAddress, uint64(totalPRVCoinsNeeded-(i*MaxTxOutput)))
+			txDetail, txBytes, txHash, err := CreateAirDropTx(airdropAccount, user.PaymentAddress, uint64(totalPRVCoinsNeeded-(i*MaxTxOutput)), forShield)
 			if err != nil {
 				panic(err)
 			}
@@ -282,7 +282,7 @@ func AirdropUser(user *UserAccount, forShield bool) {
 			user.Txs[txHash] = txDetail
 			txList = append(txList, txHash)
 		} else {
-			txDetail, txBytes, txHash, err := CreateAirDropTx(airdropAccount, user.PaymentAddress, MaxTxOutput)
+			txDetail, txBytes, txHash, err := CreateAirDropTx(airdropAccount, user.PaymentAddress, MaxTxOutput, forShield)
 			if err != nil {
 				panic(err)
 			}
@@ -363,15 +363,19 @@ func watchUserAirdropStatus(user *UserAccount, ctx context.Context) {
 	}
 }
 
-func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint64) (*AirdropTxDetail, []byte, string, error) {
+func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint64, forShield bool) (*AirdropTxDetail, []byte, string, error) {
 	log.Println("Creating tx with param", ada.Privatekey, paymentAddress, UTXOamount)
-	totalPRVNeeded := (UTXOamount * AirdropCoinValue) + incclient.DefaultPRVFee
+	coinValue := AirdropCoinValue
+	if forShield {
+		coinValue = AirdropCoinShieldValue
+	}
+	totalPRVNeeded := (UTXOamount * coinValue) + incclient.DefaultPRVFee
 	valueList := []uint64{}
 	paymentList := []string{}
 	coinsToUse := []string{}
 
 	for i := uint64(0); i < UTXOamount; i++ {
-		valueList = append(valueList, AirdropCoinValue)
+		valueList = append(valueList, coinValue)
 		paymentList = append(paymentList, paymentAddress)
 	}
 	chosenValue := uint64(0)
