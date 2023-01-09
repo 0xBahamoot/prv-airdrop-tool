@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/incognitochain/go-incognito-sdk-v2/common"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
 )
 
 type Config struct {
-	Port        int
-	Coinservice string
-	Fullnode    string
-	AirdropKeys []AirdropKey
+	Port          int
+	Coinservice   string
+	Fullnode      string
+	AirdropKeys   []AirdropKey
+	CaptchaSecret string
 }
 type AirdropKey struct {
 	PrivateKey string
@@ -31,6 +33,10 @@ func readConfig() {
 		if err != nil {
 			panic(err)
 		}
+	}
+	if config.CaptchaSecret == "" {
+		capSecret := os.Getenv("CAPTCHA_SECRET")
+		config.CaptchaSecret = capSecret
 	}
 
 	adc.airlock.Lock()

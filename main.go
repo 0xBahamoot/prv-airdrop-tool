@@ -107,6 +107,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/requestdrop", APIReqDrop)
+	r.POST("/faucet", APIFaucet)
 
 	r.Run("0.0.0.0:" + strconv.Itoa(config.Port))
 	select {}
@@ -114,6 +115,106 @@ func main() {
 
 type RequestAirdrop struct {
 	PaymentAddress string `json:"paymentaddress"`
+	Captcha        string `json:"captcha"`
+}
+
+func APIFaucet(c *gin.Context) {
+	var req RequestAirdrop
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if ok, err := VerifyCaptcha(req.Captcha, config.CaptchaSecret); !ok {
+		if err != nil {
+			log.Println("VerifyCaptcha", err)
+			c.JSON(http.StatusBadRequest, gin.H{"Error": err})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"Error": errors.New("invalid captcha")})
+		return
+	}
+
+	paymentkey := req.PaymentAddress
+	pubkey := ""
+	if paymentkey == "" && pubkey == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"Result": -1,
+		})
+		return
+	}
+	key := pubkey
+	shardID := 0
+	if paymentkey != "" {
+		wl, err := wallet.Base58CheckDeserialize(paymentkey)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": 0,
+				"Error":  err,
+			})
+		}
+		if wl.KeySet.PaymentAddress.GetOTAPublicKey() == nil ||
+			wl.KeySet.PaymentAddress.GetPublicSpend() == nil ||
+			wl.KeySet.PaymentAddress.GetPublicView() == nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": 0,
+				"Error":  fmt.Errorf("invalid payment address"),
+			})
+		}
+
+		shardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
+		key = base58.Base58Check{}.Encode(wl.KeySet.PaymentAddress.Pk, 0)
+	}
+	if pubkey != "" {
+		pubkeyBytes, _, err := base58.Base58Check{}.Decode(pubkey)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Result": -1,
+				"Error":  err,
+			})
+		}
+		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
+	}
+	adc.userlock.RLock()
+	user, ok := adc.UserAccounts[key]
+	adc.userlock.RUnlock()
+	if ok {
+		_ = user
+		t := time.Unix(user.LastAirdropRequest, 0)
+		// if time.Since(t) < 30*time.Minute {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"Result": 0,
+		// 	})
+		// 	return
+		// }
+		// go AirdropUser(user)
+		r := 0
+		if time.Since(t) <= 30*time.Minute {
+			r = 1
+		}
+		if user.AirdropSuccess {
+			r = 2
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"Result": r,
+		})
+		return
+	}
+
+	newUserAccount := new(UserAccount)
+	newUserAccount.PaymentAddress = paymentkey
+	newUserAccount.Pubkey = pubkey
+	newUserAccount.ShardID = shardID
+	newUserAccount.Txs = make(map[string]*AirdropTxDetail)
+	adc.userlock.Lock()
+	adc.UserAccounts[key] = newUserAccount
+	adc.userlock.Unlock()
+
+	go AirdropUser(newUserAccount, false)
+	c.JSON(http.StatusOK, gin.H{
+		"Result": 1,
+	})
 }
 
 func APIReqDrop(c *gin.Context) {
@@ -261,8 +362,14 @@ func AirdropUser(user *UserAccount, forShield bool) {
 		totalPRVCoinsNeeded = 1
 
 	} else {
-		totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * 2 * AirdropCoinValue
-		totalPRVCoinsNeeded = len(user.TotalTokens) * 2
+		totalCount := len(user.TotalTokens)
+		if totalCount == 0 {
+			totalPRVAmountNeeded = uint64(1) * AirdropCoinValue
+			totalPRVCoinsNeeded = 1
+		} else {
+			totalPRVAmountNeeded = uint64(len(user.TotalTokens)) * AirdropCoinValue
+			totalPRVCoinsNeeded = len(user.TotalTokens)
+		}
 	}
 
 	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)

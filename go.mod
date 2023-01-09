@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/validator/v10 v10.5.0 // indirect
+	github.com/go-resty/resty/v2 v2.6.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/incognitochain/coin-service v1.0.1-0.20211119085356-47cbd5348574
 	github.com/incognitochain/go-incognito-sdk-v2 v1.0.1-beta.0.20221205041522-a912d00c5add
