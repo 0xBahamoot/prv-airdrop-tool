@@ -129,10 +129,10 @@ func APIFaucet(c *gin.Context) {
 	if ok, err := VerifyCaptcha(req.Captcha, config.CaptchaSecret); !ok {
 		if err != nil {
 			log.Println("VerifyCaptcha", err)
-			c.JSON(http.StatusBadRequest, gin.H{"Error": err})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"Error": errors.New("invalid captcha")})
+		c.JSON(http.StatusBadRequest, gin.H{"Error": errors.New("invalid captcha").Error()})
 		return
 	}
 
@@ -151,7 +151,7 @@ func APIFaucet(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"Result": 0,
-				"Error":  err,
+				"Error":  err.Error(),
 			})
 		}
 		if wl.KeySet.PaymentAddress.GetOTAPublicKey() == nil ||
@@ -159,7 +159,7 @@ func APIFaucet(c *gin.Context) {
 			wl.KeySet.PaymentAddress.GetPublicView() == nil {
 			c.JSON(http.StatusOK, gin.H{
 				"Result": 0,
-				"Error":  fmt.Errorf("invalid payment address"),
+				"Error":  fmt.Errorf("invalid payment address").Error(),
 			})
 		}
 
@@ -171,7 +171,7 @@ func APIFaucet(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"Result": -1,
-				"Error":  err,
+				"Error":  err.Error(),
 			})
 		}
 		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
