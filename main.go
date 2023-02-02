@@ -153,6 +153,7 @@ func APIFaucet(c *gin.Context) {
 				"Result": 0,
 				"Error":  err.Error(),
 			})
+			return
 		}
 		if wl.KeySet.PaymentAddress.GetOTAPublicKey() == nil ||
 			wl.KeySet.PaymentAddress.GetPublicSpend() == nil ||
@@ -161,6 +162,7 @@ func APIFaucet(c *gin.Context) {
 				"Result": 0,
 				"Error":  fmt.Errorf("invalid payment address").Error(),
 			})
+			return
 		}
 
 		shardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
@@ -173,6 +175,7 @@ func APIFaucet(c *gin.Context) {
 				"Result": -1,
 				"Error":  err.Error(),
 			})
+			return
 		}
 		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
 	}
@@ -190,16 +193,20 @@ func APIFaucet(c *gin.Context) {
 		// }
 		// go AirdropUser(user)
 		r := 0
-		if time.Since(t) <= 30*time.Minute {
+		if time.Since(t) <= 30*time.Minute && !user.AirdropSuccess {
 			r = 1
+			c.JSON(http.StatusOK, gin.H{
+				"Result": r,
+			})
+			return
 		}
 		if user.AirdropSuccess {
 			r = 2
+			c.JSON(http.StatusOK, gin.H{
+				"Result": r,
+			})
+			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"Result": r,
-		})
-		return
 	}
 
 	newUserAccount := new(UserAccount)
@@ -242,6 +249,7 @@ func APIReqDrop(c *gin.Context) {
 				"Result": 0,
 				"Error":  err,
 			})
+			return
 		}
 		if wl.KeySet.PaymentAddress.GetOTAPublicKey() == nil ||
 			wl.KeySet.PaymentAddress.GetPublicSpend() == nil ||
@@ -250,6 +258,7 @@ func APIReqDrop(c *gin.Context) {
 				"Result": 0,
 				"Error":  fmt.Errorf("invalid payment address"),
 			})
+			return
 		}
 
 		shardID = int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31]))
@@ -262,6 +271,7 @@ func APIReqDrop(c *gin.Context) {
 				"Result": -1,
 				"Error":  err,
 			})
+			return
 		}
 		shardID = int(common.GetShardIDFromLastByte(pubkeyBytes[31]))
 	}
@@ -279,16 +289,20 @@ func APIReqDrop(c *gin.Context) {
 		// }
 		// go AirdropUser(user)
 		r := 0
-		if time.Since(t) <= 30*time.Minute {
+		if time.Since(t) <= 30*time.Minute && !user.AirdropSuccess {
 			r = 1
+			c.JSON(http.StatusOK, gin.H{
+				"Result": r,
+			})
+			return
 		}
 		if user.AirdropSuccess {
 			r = 2
+			c.JSON(http.StatusOK, gin.H{
+				"Result": r,
+			})
+			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"Result": r,
-		})
-		return
 	}
 
 	newUserAccount := new(UserAccount)
