@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -40,7 +41,7 @@ func readConfig() {
 	}
 
 	adc.airlock.Lock()
-	for _, key := range config.AirdropKeys {
+	for idx, key := range config.AirdropKeys {
 		wl, err := wallet.Base58CheckDeserialize(key.PrivateKey)
 		if err != nil {
 			panic(err)
@@ -51,6 +52,7 @@ func readConfig() {
 			ShardID:    int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31])),
 			UTXOInUse:  make(map[string]struct{}),
 		}
+		fmt.Printf("idx %v -> shardid %v\n", idx, acc.ShardID)
 		adc.AirdropAccounts = append(adc.AirdropAccounts, acc)
 	}
 	adc.airlock.Unlock()

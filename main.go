@@ -386,7 +386,7 @@ func AirdropUser(user *UserAccount, forShield bool) {
 		}
 	}
 
-	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID)
+	airdropAccount := chooseAirdropAccount(totalPRVAmountNeeded, user.ShardID, user.PaymentAddress)
 	airdropAccount.lock.Lock()
 	totalTxNeeded := int(math.Ceil(float64(totalPRVCoinsNeeded) / float64(MaxTxOutput)))
 	txList := []string{}
@@ -535,20 +535,21 @@ func CreateAirDropTx(ada *AirdropAccount, paymentAddress string, UTXOamount uint
 	return &txDetail, encodedTx, txHash, nil
 }
 
-func chooseAirdropAccount(totalValueNeeded uint64, shardID int) *AirdropAccount {
+func chooseAirdropAccount(totalValueNeeded uint64, shardID int, userAddress string) *AirdropAccount {
 	var result *AirdropAccount
 	var i int
-	adc.airlock.Lock()
 retry:
 	if i+1 == len(adc.AirdropAccounts) {
 		time.Sleep(20 * time.Second)
-		log.Println("can't choose airdrop account")
+		log.Println("can't choose airdrop account", userAddress, shardID)
 		i = 0
 	}
 	i++
+	adc.airlock.Lock()
 	adc.lastUsedADA = (adc.lastUsedADA + 1) % len(adc.AirdropAccounts)
 	result = adc.AirdropAccounts[adc.lastUsedADA]
 	if result.ShardID != shardID {
+		adc.airlock.Unlock()
 		goto retry
 	}
 	if result.TotalUTXO == 0 {
@@ -562,6 +563,7 @@ retry:
 		totalADAValue += v.Coin.GetValue()
 	}
 	if totalValueNeeded > totalADAValue {
+		adc.airlock.Unlock()
 		goto retry
 	}
 	adc.airlock.Unlock()
