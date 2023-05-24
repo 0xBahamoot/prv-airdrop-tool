@@ -575,6 +575,10 @@ func getAirdropAccountUTXOs(adc *AirdropAccount) {
 	if err != nil {
 		panic(err)
 	}
+	if len(uxto) == 0 {
+		log.Println("no utxo for airdrop account", adc.ShardID)
+		return
+	}
 	var utxos []Coin
 	for idx, v := range uxto {
 		if v.GetVersion() == 2 {
