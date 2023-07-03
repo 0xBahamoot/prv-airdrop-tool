@@ -564,7 +564,7 @@ retry:
 		totalADAValue += v.Coin.GetValue()
 	}
 	if totalValueNeeded > totalADAValue {
-		fmt.Printf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.Privatekey, totalValueNeeded, totalADAValue)
+		fmt.Printf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.PaymentAddress, totalValueNeeded, totalADAValue)
 		adc.airlock.Unlock()
 		goto retry
 	}
