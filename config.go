@@ -53,7 +53,7 @@ func readConfig() {
 			ShardID:        int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31])),
 			UTXOInUse:      make(map[string]struct{}),
 		}
-		fmt.Printf("idx %v -> shardid %v\n", idx, acc.ShardID)
+		fmt.Printf("idx %v -> shardid %v address %v \n", idx, acc.ShardID, acc.PaymentAddress)
 		adc.AirdropAccounts = append(adc.AirdropAccounts, acc)
 	}
 	adc.airlock.Unlock()
