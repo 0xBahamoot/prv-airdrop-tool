@@ -36,12 +36,13 @@ type UserAccount struct {
 }
 
 type AirdropAccount struct {
-	lock       sync.Mutex
-	Privatekey string
-	TotalUTXO  int
-	ShardID    int
-	UTXOList   []Coin
-	UTXOInUse  map[string]struct{}
+	lock           sync.Mutex
+	Privatekey     string
+	PaymentAddress string
+	TotalUTXO      int
+	ShardID        int
+	UTXOList       []Coin
+	UTXOInUse      map[string]struct{}
 }
 
 type Coin struct {
@@ -563,6 +564,7 @@ retry:
 		totalADAValue += v.Coin.GetValue()
 	}
 	if totalValueNeeded > totalADAValue {
+		fmt.Printf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.Privatekey, totalValueNeeded, totalADAValue)
 		adc.airlock.Unlock()
 		goto retry
 	}

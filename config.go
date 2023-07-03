@@ -48,9 +48,10 @@ func readConfig() {
 		}
 
 		acc := &AirdropAccount{
-			Privatekey: key.PrivateKey,
-			ShardID:    int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31])),
-			UTXOInUse:  make(map[string]struct{}),
+			PaymentAddress: wl.Base58CheckSerialize(wallet.PaymentAddressType),
+			Privatekey:     key.PrivateKey,
+			ShardID:        int(common.GetShardIDFromLastByte(wl.KeySet.PaymentAddress.Pk[31])),
+			UTXOInUse:      make(map[string]struct{}),
 		}
 		fmt.Printf("idx %v -> shardid %v\n", idx, acc.ShardID)
 		adc.AirdropAccounts = append(adc.AirdropAccounts, acc)
