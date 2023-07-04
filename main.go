@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"main/slacknoti"
 	"math"
 	"net/http"
 	"strconv"
@@ -73,6 +74,7 @@ func main() {
 	if err := initDB(); err != nil {
 		panic(err)
 	}
+	go slacknoti.StartSlackHook()
 	var err error
 	incClient, err = incclient.NewIncClient(config.Fullnode, "", 2)
 	if err != nil {
@@ -564,7 +566,9 @@ retry:
 		totalADAValue += v.Coin.GetValue()
 	}
 	if totalValueNeeded > totalADAValue {
-		fmt.Printf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.PaymentAddress, totalValueNeeded, totalADAValue)
+		msg := fmt.Sprintf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.PaymentAddress, totalValueNeeded, totalADAValue)
+		log.Println(msg)
+		go slacknoti.SendSlackNoti(msg)
 		adc.airlock.Unlock()
 		goto retry
 	}
