@@ -565,12 +565,19 @@ retry:
 	for _, v := range result.UTXOList {
 		totalADAValue += v.Coin.GetValue()
 	}
+
 	if totalValueNeeded > totalADAValue {
 		msg := fmt.Sprintf("airdrop %v acc %v totalValueNeeded %v > totalADAValue %v \n", result.ShardID, result.PaymentAddress, totalValueNeeded, totalADAValue)
 		log.Println(msg)
 		go slacknoti.SendSlackNoti(msg)
 		adc.airlock.Unlock()
 		goto retry
+	} else {
+		if totalADAValue < 5*1e9 {
+			msg := fmt.Sprintf("airdrop %v acc %v totalADAValue %v < %v \n", result.ShardID, result.PaymentAddress, totalADAValue, 5*1e9)
+			log.Println(msg)
+			go slacknoti.SendSlackNoti(msg)
+		}
 	}
 	adc.airlock.Unlock()
 	return result
